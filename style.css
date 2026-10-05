@@ -436,7 +436,8 @@ body {
 
 .input-with-suffix input,
 .custom-select,
-.custom-food-form-wrap input {
+.custom-food-form-wrap input,
+.modal-card input {
   width: 100%;
   padding: 10px 14px;
   border-radius: var(--radius-md);
@@ -448,6 +449,7 @@ body {
   color: var(--text-main);
   outline: none;
   transition: var(--transition);
+  box-sizing: border-box;
 }
 
 .input-with-suffix input {
@@ -465,7 +467,8 @@ body {
 
 .input-with-suffix input:focus,
 .custom-select:focus,
-.custom-food-form-wrap input:focus {
+.custom-food-form-wrap input:focus,
+.modal-card input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
   background: #ffffff;
@@ -659,34 +662,66 @@ body {
 .exchange-card {
   border-top: 4px solid var(--primary);
   background: #ffffff;
+  overflow: hidden;
 }
 
 .swap-values-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   background: var(--surface-subtle);
   padding: 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   margin-top: 10px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .swap-values-grid .form-group {
   margin-bottom: 0;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.swap-values-grid .span-2 {
+  grid-column: span 2;
 }
 
 .swap-values-grid label {
   font-size: 11.5px;
   font-weight: 600;
   color: #475569;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .swap-values-grid input {
-  padding: 6px 10px;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  font-family: inherit;
   font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  background: #ffffff;
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  outline: none;
+  transition: var(--transition);
+}
+
+.swap-values-grid input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+  background: #ffffff;
 }
 
 .swap-result-box {
@@ -1034,9 +1069,78 @@ body {
   color: #9f1239;
 }
 
-.diabetic-info-banner i {
-  font-size: 20px;
-  color: var(--diabetic-color);
+/* Weekly Sunday Rotation & Season Status Bar */
+.weekly-rotation-status-bar {
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+  border: 1.5px solid #a7f3d0;
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.wrs-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wrs-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wrs-season {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.wrs-calendar {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.wrs-sunday-today {
+  background: #fdf2f8;
+  color: #9d174d;
+  border: 1px solid #fbcfe8;
+  animation: pulse-sunday 2s infinite;
+}
+
+@keyframes pulse-sunday {
+  0% { box-shadow: 0 0 0 0 rgba(219, 39, 119, 0.3); }
+  70% { box-shadow: 0 0 0 6px rgba(219, 39, 119, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(219, 39, 119, 0); }
+}
+
+.wrs-date-range {
+  font-size: 12px;
+  font-weight: 700;
+  color: #065f46;
+}
+
+.wrs-right .btn {
+  padding: 5px 12px;
+  font-size: 12px;
+  border-color: #10b981;
+  color: #047857;
+  background: #ffffff;
+}
+
+.wrs-right .btn:hover {
+  background: #ecfdf5;
 }
 
 /* Meals List */
@@ -1858,6 +1962,21 @@ body {
   animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.modal-card.modal-card-xl {
+  max-width: 95vw;
+  width: 1250px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-body.modal-body-scrollable {
+  overflow-y: auto;
+  overflow-x: auto;
+  max-height: calc(92vh - 135px);
+  padding: 16px 20px;
+}
+
 @keyframes slideUp {
   from { transform: translateY(12px) scale(0.98); }
   to { transform: translateY(0) scale(1); }
@@ -1924,57 +2043,500 @@ body {
   margin-top: 20px;
 }
 
-/* Print Styles */
+/* =========================================================
+   Dedicated Clean Print Sheet Styles (Sadece İlgili Alanı Yazdırma)
+   ========================================================= */
+
+.print-only-sheet {
+  display: none;
+}
+
 @media print {
+  /* Standart veya klavye (Ctrl+P) ile yazdırıldığında dahi tüm gereksiz sayfa öğelerini gizle */
   body {
-    background: white;
-    color: black;
-    padding: 0;
+    background: #ffffff !important;
+    color: #111827 !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
-  
-  .input-card,
-  .nav-tabs-bar,
-  .plan-actions,
-  .quick-tips-box,
-  .main-footer,
+
+  header.main-header,
+  aside.dashboard-aside,
+  nav.tabs-navigation,
+  .meal-selector-bar,
   .print-bar-footer,
-  #clear-log-btn {
+  footer.main-footer,
+  .modal-overlay,
+  .quick-tips-box,
+  .footer-alert,
+  .schedule-view-switcher,
+  .btn,
+  #tab-tracker,
+  #tab-diabetes,
+  .tab-pane:not(.active) {
     display: none !important;
+  }
+
+  .app-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   .dashboard-grid {
-    grid-template-columns: 1fr;
+    display: block !important;
+  }
+
+  .main-content {
+    width: 100% !important;
   }
 
   .card {
-    box-shadow: none;
-    border: 1px solid #ccc;
-    page-break-inside: avoid;
-    margin-bottom: 16px;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
-  /* Yalnızca Alışveriş Listesi Yazdırma Modu */
-  body.print-only-shopping .metrics-card,
-  body.print-only-shopping #tab-plan,
-  body.print-only-shopping #tab-tracker,
-  body.print-only-shopping #tab-diabetes,
-  body.print-only-shopping #timeline-card {
+  .meal-item {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-bottom: 14px !important;
+  }
+
+  /* ÖZEL İZOLE YAZDIRMA MODU: SADECE İLGİLİ LİSTEYİ YAZDIR, SAYFAYI GİZLE */
+  body.printing-dedicated-sheet * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body.printing-dedicated-sheet .app-container,
+  body.printing-dedicated-sheet .modal-overlay,
+  body.printing-dedicated-sheet header,
+  body.printing-dedicated-sheet aside,
+  body.printing-dedicated-sheet nav,
+  body.printing-dedicated-sheet footer,
+  body.printing-dedicated-sheet .schedule-view-switcher {
     display: none !important;
   }
 
-  body.print-only-shopping #tab-shopping {
+  body.printing-dedicated-sheet #print-only-sheet {
     display: block !important;
-  }
-
-  /* Yalnızca Yemek Listesi Yazdırma Modu */
-  body.print-only-plan #tab-shopping,
-  body.print-only-plan #tab-tracker,
-  body.print-only-plan #tab-diabetes {
-    display: none !important;
-  }
-
-  body.print-only-plan #tab-plan {
-    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    padding: 8px 12px !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    box-sizing: border-box !important;
   }
 }
+
+/* =========================================================
+   Global Çıktı & Ekran Tablo Matrisi Stilleri (Hem Ekranda Hem Yazdırmada Geçerli)
+   ========================================================= */
+
+/* Görünüm Değiştirici Butonlar (Günlük vs Haftalık Matris) */
+.schedule-view-switcher {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  background: #f1f5f9;
+  padding: 5px;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--border);
+}
+
+.view-switch-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: var(--transition);
+}
+
+.view-switch-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.view-switch-btn.active {
+  background: #ffffff;
+  color: var(--primary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  border: 1.5px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Ekranda 7 Günlük Matris Kartı */
+.weekly-matrix-screen-card {
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--border);
+  padding: 20px;
+  margin-bottom: 22px;
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+}
+
+.weekly-screen-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1.5px solid var(--border);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.weekly-screen-top-bar h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #065f46;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+/* Yazdırma Belge Başlığı */
+  .ps-header {
+    border-bottom: 2.5px solid #059669;
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .ps-brand {
+    font-size: 20px;
+    font-weight: 800;
+    color: #059669;
+    margin-bottom: 2px;
+  }
+
+  .ps-subtitle {
+    font-size: 11px;
+    color: #4b5563;
+  }
+
+  .ps-meta {
+    text-align: right;
+    font-size: 11px;
+    color: #374151;
+    line-height: 1.4;
+  }
+
+  .ps-meta strong {
+    color: #111827;
+  }
+
+  /* Gün ve Öğün Kartları */
+  .ps-day-block {
+    margin-bottom: 18px;
+    page-break-inside: avoid;
+  }
+
+  .ps-day-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #065f46;
+    background: #ecfdf5;
+    padding: 6px 12px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    border-left: 4px solid #059669;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .ps-meal-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    page-break-inside: avoid;
+  }
+
+  .ps-meal-header {
+    background: #f9fafb;
+    padding: 6px 10px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #1f2937;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .ps-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+  }
+
+  .ps-table td {
+    padding: 5px 8px;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .ps-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .ps-food-name {
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .ps-portion {
+    color: #4b5563;
+    text-align: right;
+  }
+
+  .ps-nutrients {
+    text-align: right;
+    font-weight: 600;
+    color: #374151;
+    white-space: nowrap;
+  }
+
+  .ps-summary-bar {
+    background: #f8fafc;
+    border: 1.5px solid #059669;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-top: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    page-break-inside: avoid;
+    font-size: 12px;
+  }
+
+  .ps-advice-box {
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: #f0fdf4;
+    border-left: 3px solid #059669;
+    font-size: 11px;
+    color: #166534;
+    line-height: 1.4;
+  }
+
+  /* Alışveriş Listesi Yazdırma */
+  .ps-shopping-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 12px;
+  }
+
+  .ps-shop-col {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 10px;
+    background: #ffffff;
+  }
+
+  .ps-shop-col h3 {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #059669;
+    margin-bottom: 6px;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 4px;
+  }
+
+  .ps-shop-col ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 11px;
+  }
+
+  .ps-shop-col li {
+    padding: 3px 0;
+    position: relative;
+    padding-left: 14px;
+  }
+
+  .ps-shop-col li::before {
+    content: "☐ ";
+    position: absolute;
+    left: 0;
+    color: #059669;
+  }
+
+  /* 7 Günlük Haftalık Tablo Matrisi (A4 Yatay / Dikey Uyumlu) */
+  .ps-weekly-matrix-wrap {
+    width: 100%;
+    margin-top: 6px;
+    page-break-inside: auto;
+  }
+
+  .ps-weekly-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+    background: #ffffff;
+  }
+
+  .ps-weekly-table th {
+    background: #065f46;
+    color: #ffffff;
+    padding: 6px 5px;
+    font-weight: 700;
+    text-align: left;
+    border: 1px solid #047857;
+    font-size: 10.5px;
+  }
+
+  .ps-weekly-table th.th-day {
+    width: 11%;
+  }
+
+  .ps-weekly-table th.th-total {
+    width: 11%;
+    text-align: center;
+  }
+
+  .ps-weekly-table td {
+    border: 1px solid #cbd5e1;
+    padding: 5px 6px;
+    vertical-align: top;
+  }
+
+  .ps-weekly-table tr:nth-child(even) td {
+    background: #f8fafc;
+  }
+
+  .td-day-info strong {
+    display: block;
+    font-size: 11.5px;
+    color: #065f46;
+    margin-bottom: 2px;
+  }
+
+  .day-theme-sub {
+    display: block;
+    font-size: 9px;
+    color: #64748b;
+    line-height: 1.25;
+  }
+
+  .meal-item-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .meal-item-list li {
+    margin-bottom: 3px;
+    line-height: 1.3;
+    font-size: 9.5px;
+    color: #1e293b;
+  }
+
+  .meal-item-list li strong {
+    color: #0f172a;
+  }
+
+  .cal-chip {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    color: #047857;
+    background: #ecfdf5;
+    padding: 1px 3px;
+    border-radius: 3px;
+    margin-left: 2px;
+    white-space: nowrap;
+  }
+
+  .prot-chip {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    color: #1d4ed8;
+    background: #eff6ff;
+    padding: 1px 3px;
+    border-radius: 3px;
+    margin-left: 1px;
+    white-space: nowrap;
+  }
+
+  .ke-chip {
+    display: inline-block;
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #be123c;
+    background: #fff1f2;
+    padding: 1px 3px;
+    border-radius: 3px;
+    margin-left: 1px;
+    white-space: nowrap;
+  }
+
+  .cell-meal-sum {
+    margin-top: 4px;
+    padding-top: 3px;
+    border-top: 1px dashed #cbd5e1;
+    font-size: 9px;
+    font-weight: 700;
+    color: #047857;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .td-total-cell {
+    text-align: center;
+    background: #f0fdf4 !important;
+    font-size: 10px;
+  }
+
+  .tot-cals {
+    font-size: 12px;
+    font-weight: 800;
+    color: #065f46;
+    margin-bottom: 2px;
+  }
+
+  .tot-prot {
+    font-size: 10px;
+    font-weight: 700;
+    color: #1e40af;
+    margin-bottom: 2px;
+  }
+
+  .tot-carb {
+    font-size: 9.5px;
+    font-weight: 600;
+    color: #b45309;
+    margin-bottom: 2px;
+  }
+
+  .tot-ke {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #be123c;
+    margin-bottom: 2px;
+  }
+
+  .tot-fat {
+    font-size: 9.5px;
+    font-weight: 600;
+    color: #6b21a8;
+  }
+
 

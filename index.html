@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- FontAwesome Icons for modern UI -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20261005_6">
 </head>
 <body>
   <div class="app-container">
@@ -408,7 +408,7 @@
                 <button class="btn btn-secondary btn-sm" id="randomize-btn" title="Yeni kombinasyon oluştur">
                   <i class="fa-solid fa-shuffle"></i> Yenile
                 </button>
-                <button class="btn btn-outline btn-sm" id="print-btn" title="Yazdır veya PDF Kaydet">
+                <button class="btn btn-outline btn-sm" id="print-btn" onclick="printCurrentDayPlan()" title="Yazdır veya PDF Kaydet">
                   <i class="fa-solid fa-print"></i> Yazdır
                 </button>
               </div>
@@ -422,49 +422,92 @@
               </div>
             </div>
 
-            <!-- Meals List -->
-            <div class="meals-list" id="meals-container">
-              <!-- Dynamically populated via app.js -->
+            <!-- Haftalık Pazar Rotasyonu & Mevsim Bilgilendirme Bandı -->
+            <div class="weekly-rotation-status-bar" id="weekly-rotation-bar">
+              <div class="wrs-left">
+                <span class="wrs-badge wrs-season" id="current-season-badge"><i class="fa-solid fa-leaf"></i> <strong>Mevsim:</strong> Sonbahar</span>
+                <span class="wrs-badge wrs-calendar" id="weekly-update-badge"><i class="fa-solid fa-calendar-check"></i> Pazar Günü Güncellendi</span>
+                <span class="wrs-date-range" id="week-date-range-display">4 Ekim - 11 Ekim 2026</span>
+              </div>
+              <div class="wrs-right">
+                <button class="btn btn-sm btn-outline" id="rotate-week-btn" type="button" title="Farklı bir haftanın menü kombinasyonuna geç">
+                  <i class="fa-solid fa-arrows-rotate"></i> Başka Hafta Menüsü
+                </button>
+              </div>
             </div>
 
-            <!-- Total Daily Summary Box -->
-            <div class="total-summary-card">
-              <div class="total-label">
-                <i class="fa-solid fa-calculator"></i>
-                <div>
-                  <strong>Menü Toplam Değerleri</strong>
-                  <p>Maksimum 100g protein sınırına ve hedeflenen kaloriye göredir.</p>
+            <!-- Görünüm Değiştirici: Günlük Tekil Görünüm vs. 7 Günlük Haftalık Tablo Matrisi -->
+            <div class="schedule-view-switcher">
+              <button type="button" class="view-switch-btn active" id="view-mode-single-btn" onclick="setScheduleViewMode('single')">
+                <i class="fa-solid fa-calendar-day"></i> Günlük Detaylı Görünüm
+              </button>
+              <button type="button" class="view-switch-btn" id="view-mode-weekly-btn" onclick="setScheduleViewMode('weekly')">
+                <i class="fa-solid fa-table-cells"></i> 7 Günlük Haftalık Tablo Matrisi (Buzdolabı Çizelgesi)
+              </button>
+            </div>
+
+            <!-- GÖRÜNÜM 1: GÜNLÜK TEKİL MENÜ ALANI -->
+            <div id="single-day-view">
+              <!-- Meals List -->
+              <div class="meals-list" id="meals-container">
+                <!-- Dynamically populated via app.js -->
+              </div>
+
+              <!-- Total Daily Summary Box -->
+              <div class="total-summary-card">
+                <div class="total-label">
+                  <i class="fa-solid fa-calculator"></i>
+                  <div>
+                    <strong>Menü Toplam Değerleri</strong>
+                    <p>Maksimum 100g protein sınırına ve hedeflenen kaloriye göredir.</p>
+                  </div>
+                </div>
+                <div class="total-stats">
+                  <div class="stat-pill">
+                    <span class="stat-title">Toplam Kalori</span>
+                    <span class="stat-val" id="total-meal-calories">1,620 kcal</span>
+                  </div>
+                  <div class="stat-pill highlight-pill">
+                    <span class="stat-title">Toplam Protein</span>
+                    <span class="stat-val" id="total-meal-protein">84g</span>
+                    <span class="stat-badge"><i class="fa-solid fa-check"></i> &le; 100g</span>
+                  </div>
+                  <div class="stat-pill">
+                    <span class="stat-title">Karbonhidrat</span>
+                    <span class="stat-val" id="total-meal-carbs">175g</span>
+                    <span class="stat-sub-ke" id="total-meal-ke" style="display:none;">11.6 KE</span>
+                  </div>
+                  <div class="stat-pill">
+                    <span class="stat-title">Yağ</span>
+                    <span class="stat-val" id="total-meal-fat">60g</span>
+                  </div>
                 </div>
               </div>
-              <div class="total-stats">
-                <div class="stat-pill">
-                  <span class="stat-title">Toplam Kalori</span>
-                  <span class="stat-val" id="total-meal-calories">1,620 kcal</span>
-                </div>
-                <div class="stat-pill highlight-pill">
-                  <span class="stat-title">Toplam Protein</span>
-                  <span class="stat-val" id="total-meal-protein">84g</span>
-                  <span class="stat-badge"><i class="fa-solid fa-check"></i> &le; 100g</span>
-                </div>
-                <div class="stat-pill">
-                  <span class="stat-title">Karbonhidrat</span>
-                  <span class="stat-val" id="total-meal-carbs">175g</span>
-                  <span class="stat-sub-ke" id="total-meal-ke" style="display:none;">11.6 KE</span>
-                </div>
-                <div class="stat-pill">
-                  <span class="stat-title">Yağ</span>
-                  <span class="stat-val" id="total-meal-fat">60g</span>
-                </div>
+            </div>
+
+            <!-- GÖRÜNÜM 2: 7 GÜNLÜK HAFTALIK MATRİS TABLO ALANI (EKRANDA CANLI) -->
+            <div id="weekly-matrix-screen-view" class="weekly-matrix-screen-card" style="display: none;">
+              <div class="weekly-screen-top-bar">
+                <h3><i class="fa-solid fa-calendar-days"></i> 7 Günlük Haftalık Beslenme Çizelgesi Tablosu</h3>
+                <button class="btn btn-primary btn-sm" onclick="printWeeklyOverview()" type="button">
+                  <i class="fa-solid fa-print"></i> Bu 7 Günlük Tabloyu A4 Yatay Yazdır / PDF İndir
+                </button>
+              </div>
+              <div id="weekly-matrix-screen-table-wrap">
+                <!-- Dynamically populated via renderWeeklyMatrixScreen() in app.js -->
               </div>
             </div>
 
             <!-- Haftalık / Günlük Yemek Listesi Yazdırma Alanı -->
             <div class="print-bar-footer">
-              <button class="btn btn-primary" id="print-plan-bottom-btn" type="button">
-                <i class="fa-solid fa-print"></i> Bu Yemek Listesini Yazdır / PDF İndir
+              <button class="btn btn-primary" id="print-plan-bottom-btn" onclick="printCurrentDayPlan()" type="button">
+                <i class="fa-solid fa-print"></i> Bu Günlük Listeyi Yazdır / PDF İndir
               </button>
-              <button class="btn btn-outline" id="print-weekly-overview-btn" type="button">
+              <button class="btn btn-outline" id="print-weekly-overview-btn" onclick="printWeeklyOverview()" type="button">
                 <i class="fa-solid fa-calendar-days"></i> 7 Günlük Tüm Haftayı Yazdır (A4)
+              </button>
+              <button class="btn btn-outline" id="open-weekly-matrix-btn" onclick="setScheduleViewMode('weekly')" type="button">
+                <i class="fa-solid fa-table-cells"></i> 7 Günlük Tabloyu Ekranda Gör
               </button>
             </div>
           </div>
@@ -736,7 +779,7 @@
 
             <!-- Alışveriş Listesi Yazdırma Alanı -->
             <div class="print-bar-footer">
-              <button class="btn btn-primary" id="print-shopping-bottom-btn" type="button">
+              <button class="btn btn-primary" id="print-shopping-bottom-btn" onclick="printShoppingList()" type="button">
                 <i class="fa-solid fa-print"></i> Alışveriş Listesini Yazdır / PDF İndir
               </button>
             </div>
@@ -805,9 +848,31 @@
     </div>
   </div>
 
+  <!-- 7 Günlük Haftalık Tablo Matrisi Ekranda Önizleme Modalı -->
+  <div class="modal-overlay" id="weekly-matrix-modal" style="display:none;">
+    <div class="modal-card modal-card-xl">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-calendar-days text-green"></i> 7 Günlük Haftalık Beslenme Çizelgesi Tablosu</h3>
+        <button class="btn-icon" id="close-weekly-modal-btn" onclick="closeWeeklyMatrixModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body modal-body-scrollable" id="weekly-matrix-modal-body">
+        <!-- Dinamik olarak app.js tarafından doldurulur -->
+      </div>
+      <div class="modal-actions" style="display: flex; justify-content: space-between; padding: 14px 20px; border-top: 1px solid var(--border); background: #f8fafc;">
+        <button type="button" class="btn btn-outline" onclick="closeWeeklyMatrixModal()">Kapat</button>
+        <button type="button" class="btn btn-primary" onclick="printWeeklyOverview()">
+          <i class="fa-solid fa-print"></i> A4 Yatay Olarak Yazdır / PDF İndir
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Özel Yalnızca Yazdırma Alanı (Sadece Yazdır Butonuna Basıldığında Görünür) -->
+  <div id="print-only-sheet" class="print-only-sheet" aria-hidden="true"></div>
+
   <!-- Supabase CDN & Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=20261005_6"></script>
 </body>
 </html>

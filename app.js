@@ -24,13 +24,101 @@ const DINING_OUT_TEMPLATES = [
 ];
 
 // ==========================================
-// 2. ÖĞÜN VERİ TABANI (7 GÜNLÜK & TÜM ÖĞÜN TİPLERİ)
+// 2. MEVSİMSEL BESİNLER & HAFTALIK PAZAR ROTASYON MOTORU
 // ==========================================
-// Her gün için: kahvaltı, ara öğün (kuşluk), öğle, ara öğün (ikindi), akşam yemeği
-const MASTER_MEALS = [
+
+/**
+ * Güncel Ay ve Mevsim Tespiti
+ */
+function getCurrentSeason() {
+  const month = new Date().getMonth(); // 0: Ocak, 9: Ekim, 11: Aralık
+  if (month >= 2 && month <= 4) {
+    return {
+      id: "spring",
+      name: "İlkbahar",
+      monthName: "İlkbahar Dönemi",
+      badge: "🌱 Mevsim: İlkbahar",
+      icon: "fa-seedling",
+      produceNote: "Enginar, taze bakla, bezelye, kuşkonmaz, çilek, semizotu"
+    };
+  } else if (month >= 5 && month <= 7) {
+    return {
+      id: "summer",
+      name: "Yaz",
+      monthName: "Yaz Dönemi",
+      badge: "☀️ Mevsim: Yaz",
+      icon: "fa-sun",
+      produceNote: "Taze fasulye, kabak, patlıcan, domates, semizotu, şeftali, karpuz"
+    };
+  } else if (month >= 8 && month <= 10) {
+    return {
+      id: "autumn",
+      name: "Sonbahar",
+      monthName: "Ekim - Sonbahar Dönemi",
+      badge: "🍂 Mevsim: Sonbahar",
+      icon: "fa-leaf",
+      produceNote: "Balkabağı, brokoli, karnabahar, pırasa, kereviz, nar taneleri, yeşil elma, mandalina, taze ceviz"
+    };
+  } else {
+    return {
+      id: "winter",
+      name: "Kış",
+      monthName: "Kış Dönemi",
+      badge: "❄️ Mevsim: Kış",
+      icon: "fa-snowflake",
+      produceNote: "Beyaz lahana, pırasa, kereviz, ıspanak, havuç, portakal, mandalina, kivi"
+    };
+  }
+}
+
+/**
+ * Pazar Günü Otomatik Güncelleme ve Hafta Takip Motoru
+ */
+function getWeeklyRotationData() {
+  const now = new Date();
+  const oneDay = 24 * 60 * 60 * 1000;
+  const dayOfWeek = now.getDay(); // 0 = Pazar, 1 = Pazartesi...
+  
+  // Pazar gününü bul (Pazar ise bugün, değilse bu haftanın başladığı son Pazar)
+  const diffDays = dayOfWeek;
+  const lastSunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffDays);
+  lastSunday.setHours(0, 0, 0, 0);
+
+  const nextSunday = new Date(lastSunday.getTime() + 7 * oneDay);
+
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const weekNumber = Math.ceil(((lastSunday - startOfYear) / oneDay + startOfYear.getDay() + 1) / 7);
+
+  let userOffset = 0;
+  try {
+    const saved = localStorage.getItem("diyetweb_week_offset");
+    if (saved !== null) userOffset = parseInt(saved, 10) || 0;
+  } catch (e) {}
+
+  const activeWeekIndex = (weekNumber + userOffset) % 2;
+
+  const monthNames = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+  const lastSundayStr = `${lastSunday.getDate()} ${monthNames[lastSunday.getMonth()]} ${lastSunday.getFullYear()}`;
+  const nextSundayStr = `${nextSunday.getDate()} ${monthNames[nextSunday.getMonth()]} ${nextSunday.getFullYear()}`;
+
+  return {
+    weekNumber,
+    activeWeekIndex,
+    lastSundayStr,
+    nextSundayStr,
+    dateRangeStr: `${lastSundayStr} – ${nextSundayStr}`,
+    isSunday: dayOfWeek === 0
+  };
+}
+
+// ==========================================
+// 3. HAFTALIK ÖĞÜN VERİ TABANI (1. HAFTA & 2. HAFTA DÖNÜŞÜMLÜ)
+// ==========================================
+
+const WEEK_A_MEALS = [
   {
     dayIndex: 0,
-    dayName: "1. Gün - Klasik Akdeniz Dengesi",
+    dayName: "1. Gün (Pazartesi) - Klasik Akdeniz Dengesi",
     breakfast: {
       title: "1. Ana Öğün: Doyurucu Akdeniz Kahvaltısı",
       time: "10:30",
@@ -98,7 +186,7 @@ const MASTER_MEALS = [
   },
   {
     dayIndex: 1,
-    dayName: "2. Gün - Tok Tutan Lifli Menü",
+    dayName: "2. Gün (Salı) - Tok Tutan Lifli Menü",
     breakfast: {
       title: "1. Ana Öğün: Avokadolu & Yumurtalı Enerji Kahvaltısı",
       time: "10:30",
@@ -164,7 +252,7 @@ const MASTER_MEALS = [
   },
   {
     dayIndex: 2,
-    dayName: "3. Gün - Balık & Omega-3 Günü",
+    dayName: "3. Gün (Çarşamba) - Balık & Omega-3 Günü",
     breakfast: {
       title: "1. Ana Öğün: Mantarlı & Maydanozlu 2 Yumurtalı Omlet",
       time: "10:30",
@@ -229,7 +317,7 @@ const MASTER_MEALS = [
   },
   {
     dayIndex: 3,
-    dayName: "4. Gün - Bitkisel Protein & Zeytinyağlı",
+    dayName: "4. Gün (Perşembe) - Bitkisel Protein & Zeytinyağlı",
     breakfast: {
       title: "1. Ana Öğün: Çılbır (Yoğurtlu Poşe Yumurta) & Ekmek",
       time: "10:30",
@@ -295,7 +383,7 @@ const MASTER_MEALS = [
   },
   {
     dayIndex: 4,
-    dayName: "5. Gün - Enerjik & Dinamik Gün",
+    dayName: "5. Gün (Cuma) - Enerjik & Dinamik Gün",
     breakfast: {
       title: "1. Ana Öğün: Fırın Sebzeli Menemen & Peynir Şöleni",
       time: "10:30",
@@ -360,7 +448,7 @@ const MASTER_MEALS = [
   },
   {
     dayIndex: 5,
-    dayName: "6. Gün - Pratik & Hafta Sonu Seçenekleri",
+    dayName: "6. Gün (Cumartesi) - Pratik & Hafta Sonu Menüsü",
     breakfast: {
       title: "1. Ana Öğün: Hindi Fümeli Sıcak Tost & Yumurta",
       time: "10:30",
@@ -426,7 +514,7 @@ const MASTER_MEALS = [
   },
   {
     dayIndex: 6,
-    dayName: "7. Gün - Arındırıcı & Hafif Pazar",
+    dayName: "7. Gün (Pazar) - Arındırıcı & Hafif Pazar",
     breakfast: {
       title: "1. Ana Öğün: Sebzeli Fırın Fit Frittata / Yumurta",
       time: "10:30",
@@ -491,8 +579,584 @@ const MASTER_MEALS = [
   }
 ];
 
+const WEEK_B_MEALS = [
+  {
+    dayIndex: 0,
+    dayName: "1. Gün (Pazartesi) - Pırasalı Omlet & Sonbahar Arınması",
+    breakfast: {
+      title: "1. Ana Öğün: Pırasalı & Lorlu Yumurtalı Omlet",
+      time: "10:30",
+      icon: "fa-egg",
+      colorClass: "badge-breakfast",
+      note: "Pırasa kükürtlü bileşiklerle karaciğer detoksunu uyarır.",
+      items: [
+        { name: "Pırasalı & Lorlu Omlet (2 yumurta + 50g pırasa)", portion: "1 porsiyon (180g)", cal: 175, prot: 14.5, carb: 3.5, fat: 11.5 },
+        { name: "Tam Yağlı Ezine / Beyaz Peynir", portion: "35g (1 dilim)", cal: 105, prot: 7.5, carb: 0.7, fat: 8.0 },
+        { name: "Az Tuzlu Gemlik Siyah Zeytin", portion: "6 adet (20g)", cal: 40, prot: 0.3, carb: 1.0, fat: 4.0 },
+        { name: "Ekşi Mayalı Çavdar Ekmeği", portion: "2 ince dilim (60g)", cal: 140, prot: 5.5, carb: 28, fat: 1.2 },
+        { name: "Çeri Domates, Roka & Taze Nane", portion: "1 büyük kase", cal: 30, prot: 1.2, carb: 5.0, fat: 0.3 },
+        { name: "Ceviz İçi", portion: "2 tam ceviz (15g)", cal: 98, prot: 2.2, carb: 2.1, fat: 9.8 }
+      ]
+    },
+    morningSnack: {
+      title: "Kuşluk Ara Öğünü",
+      time: "11:00",
+      icon: "fa-mug-hot",
+      colorClass: "badge-snack",
+      note: "Sindirimi rahatlatan rezene molası.",
+      items: [
+        { name: "Şekersiz Rezene veya Ihlamur Çayı", portion: "1 fincan (200ml)", cal: 3, prot: 0.1, carb: 0.6, fat: 0 },
+        { name: "Çiğ Badem", portion: "8 adet (10g)", cal: 60, prot: 2.2, carb: 2.0, fat: 5.2 }
+      ]
+    },
+    lunch: {
+      title: "Öğle Yemeği: Zeytinyağlı Pırasa & Siyez Bulguru",
+      time: "13:00",
+      icon: "fa-leaf",
+      colorClass: "badge-lunch",
+      note: "Mevsimin taze pırasası bağırsak mikrobiyotasını besler.",
+      items: [
+        { name: "Zeytinyağlı Limonlu Havuçlu Pırasa", portion: "7-8 yemek kaşığı (180g)", cal: 145, prot: 3.0, carb: 18, fat: 7.0 },
+        { name: "Siyez Bulgur Pilavı", portion: "3-4 yemek kaşığı (90g)", cal: 130, prot: 3.8, carb: 27, fat: 0.9 },
+        { name: "Doğal Ev Yoğurdu (pul biberli)", portion: "4 yemek kaşığı (150g)", cal: 95, prot: 5.5, carb: 7.2, fat: 4.8 },
+        { name: "Mor Lahana & Roka Salatası", portion: "1 kase", cal: 40, prot: 1.2, carb: 7.0, fat: 0.8 }
+      ]
+    },
+    afternoonSnack: {
+      title: "İkindi Ara Öğünü: Fırın Balkabağı & Fındık",
+      time: "16:00",
+      icon: "fa-apple-whole",
+      colorClass: "badge-snack",
+      note: "Balkabağı A vitamini ve beta-karoten zenginidir.",
+      items: [
+        { name: "Fırınlanmış Tarçınlı Balkabağı veya Taze Mandalina", portion: "1 porsiyon (120g)", cal: 55, prot: 1.0, carb: 12, fat: 0.2 },
+        { name: "Çiğ Fındık", portion: "8 adet (10g)", cal: 65, prot: 1.5, carb: 1.7, fat: 6.0 }
+      ]
+    },
+    dinner: {
+      title: "2. Ana Öğün: Izgara Hindi Külbastı & Fırın Brokoli",
+      time: "19:00",
+      icon: "fa-drumstick-bite",
+      colorClass: "badge-dinner",
+      note: "Yüksek biyoyararlanımlı hafif protein kaynağı.",
+      items: [
+        { name: "Kekikli Izgara Hindi Göğüs Külbastı", portion: "140g (çiğ tartım)", cal: 215, prot: 38, carb: 0, fat: 4.5 },
+        { name: "Fırında Baharatlı Brokoli & Karnabahar", portion: "1 tabak (180g)", cal: 80, prot: 3.2, carb: 9.5, fat: 3.0 },
+        { name: "Zeytinyağlı & Nar Taneli Roka Salatası", portion: "1 tabak (1 tatlı kaşığı zeytinyağı)", cal: 85, prot: 1.5, carb: 7.5, fat: 5.5 },
+        { name: "Doğal Probiyotik Ayran", portion: "1 su bardağı (200ml)", cal: 75, prot: 4.2, carb: 5.8, fat: 3.5 }
+      ]
+    }
+  },
+  {
+    dayIndex: 1,
+    dayName: "2. Gün (Salı) - Lif & Mineral Dengesi",
+    breakfast: {
+      title: "1. Ana Öğün: Haşlanmış Köy Yumurtası & Avokadolu Lor",
+      time: "10:30",
+      icon: "fa-bread-slice",
+      colorClass: "badge-breakfast",
+      note: "Yumurta ve avokado tokluk süresini maksimuma çıkarır.",
+      items: [
+        { name: "Haşlanmış Köy Yumurtası", portion: "2 adet (100g)", cal: 155, prot: 13, carb: 1.1, fat: 10.6 },
+        { name: "Ezilmiş Avokado & Çörek Otlu Lor", portion: "50g avokado + 35g lor", cal: 130, prot: 7.5, carb: 4.5, fat: 9.5 },
+        { name: "Yeşil Zeytin", portion: "6 adet (20g)", cal: 38, prot: 0.3, carb: 0.8, fat: 4.0 },
+        { name: "Tam Tahıllı Ekmek", portion: "2 dilim (60g)", cal: 140, prot: 5.5, carb: 28, fat: 1.2 },
+        { name: "Kapya Biber, Maydanoz & Salatalık", portion: "1 tabak", cal: 32, prot: 1.3, carb: 5.5, fat: 0.3 }
+      ]
+    },
+    morningSnack: {
+      title: "Kuşluk Ara Öğünü",
+      time: "11:00",
+      icon: "fa-mug-hot",
+      colorClass: "badge-snack",
+      note: "Metabolizma uyarıcı zencefil ve ceviz.",
+      items: [
+        { name: "Taze Zencefilli Yeşil Çay", portion: "1 fincan", cal: 3, prot: 0.1, carb: 0.6, fat: 0 },
+        { name: "Ceviz İçi", portion: "1 tam (8g)", cal: 52, prot: 1.2, carb: 1.1, fat: 5.2 }
+      ]
+    },
+    lunch: {
+      title: "Öğle Yemeği: Fırında Kıymalı Karnabahar & Cacık",
+      time: "13:00",
+      icon: "fa-bowl-food",
+      colorClass: "badge-lunch",
+      note: "Karnabahar glukozinolat içeriğiyle hücresel koruma sağlar.",
+      items: [
+        { name: "Fırında Kıymalı Karnabahar Graten (az yağlı)", portion: "1 porsiyon (180g)", cal: 195, prot: 16.5, carb: 11, fat: 9.5 },
+        { name: "Karakılçık Ekmeği", portion: "1 dilim (30g)", cal: 70, prot: 2.6, carb: 14, fat: 0.6 },
+        { name: "Yoğurtlu Semizotu Salatası", portion: "1 kase (150g)", cal: 90, prot: 4.8, carb: 6.2, fat: 4.5 }
+      ]
+    },
+    afternoonSnack: {
+      title: "İkindi Ara Öğünü: Tarçınlı Yeşil Elma & Badem",
+      time: "16:00",
+      icon: "fa-apple-whole",
+      colorClass: "badge-snack",
+      note: "Pektin lifi tokluk sağlar, tarçın kan şekerini dengeler.",
+      items: [
+        { name: "Ekşi Yeşil Elma (toz tarçınlı)", portion: "1 orta boy (150g)", cal: 78, prot: 0.5, carb: 19, fat: 0.3 },
+        { name: "Çiğ Badem", portion: "10 adet (12g)", cal: 72, prot: 2.6, carb: 2.5, fat: 6.2 }
+      ]
+    },
+    dinner: {
+      title: "2. Ana Öğün: Portakallı Zeytinyağlı Kereviz & Karabuğday",
+      time: "19:00",
+      icon: "fa-leaf",
+      colorClass: "badge-dinner",
+      note: "Kereviz apigenin antioksidanı ile damar esnekliğini destekler.",
+      items: [
+        { name: "Portakallı Zeytinyağlı Kereviz Yemeği", portion: "7-8 yemek kaşığı (180g)", cal: 140, prot: 2.5, carb: 19, fat: 6.0 },
+        { name: "Karabuğday (Greçka) Pilavı", portion: "4 yemek kaşığı (100g pişmiş)", cal: 125, prot: 4.5, carb: 25, fat: 1.1 },
+        { name: "Ev Yapımı Naneli Cacık", portion: "1 büyük kase (180g)", cal: 95, prot: 5.8, carb: 7.5, fat: 4.5 },
+        { name: "Akdeniz Yeşillikleri Salatası", portion: "1 kase (1 tatlı kaşığı zeytinyağı)", cal: 70, prot: 1.2, carb: 4.5, fat: 5.0 }
+      ]
+    }
+  },
+  {
+    dayIndex: 2,
+    dayName: "3. Gün (Çarşamba) - Çupra / Deniz Ürünleri & Omega-3",
+    breakfast: {
+      title: "1. Ana Öğün: Mantarlı & Biberli Yumurta Şöleni",
+      time: "10:30",
+      icon: "fa-egg",
+      colorClass: "badge-breakfast",
+      note: "Mantar ve yumurta kombinasyonu tok tutan zengin aminoasitler barındırır.",
+      items: [
+        { name: "Mantarlı & Biberli Yumurta", portion: "2 yumurta + 50g mantar", cal: 185, prot: 14, carb: 2.5, fat: 13 },
+        { name: "Beyaz Peynir / Tulum Peyniri", portion: "35g (1 dilim)", cal: 105, prot: 7.5, carb: 0.6, fat: 8.0 },
+        { name: "Siyah Zeytin", portion: "6 adet (20g)", cal: 40, prot: 0.3, carb: 1.0, fat: 4.0 },
+        { name: "Tam Buğday Ekmeği", portion: "2 ince dilim (60g)", cal: 140, prot: 5.5, carb: 28, fat: 1.2 },
+        { name: "Taze Roka, Domates & Biber", portion: "1 tabak", cal: 30, prot: 1.2, carb: 5.0, fat: 0.3 }
+      ]
+    },
+    morningSnack: {
+      title: "Kuşluk Ara Öğünü",
+      time: "11:00",
+      icon: "fa-mug-hot",
+      colorClass: "badge-snack",
+      note: "Kahve molası ve hafif kurutulmuş meyve.",
+      items: [
+        { name: "Sade Türk Kahvesi", portion: "1 fincan", cal: 2, prot: 0.1, carb: 0.3, fat: 0 },
+        { name: "Kuru Kayısı", portion: "2 adet (25g)", cal: 60, prot: 0.8, carb: 14.5, fat: 0.1 }
+      ]
+    },
+    lunch: {
+      title: "Öğle Yemeği: Zeytinyağlı Taze Fasulye & Yoğurt",
+      time: "13:00",
+      icon: "fa-bowl-rice",
+      colorClass: "badge-lunch",
+      note: "Hafif ve lifli öğle yemeği.",
+      items: [
+        { name: "Zeytinyağlı Taze Fasulye veya Kabak", portion: "7-8 yemek kaşığı (180g)", cal: 135, prot: 3.2, carb: 15, fat: 6.5 },
+        { name: "Başbaşı Bulgur Pilavı", portion: "3 yemek kaşığı (75g)", cal: 110, prot: 3.2, carb: 23, fat: 0.8 },
+        { name: "Doğal Ev Yoğurdu", portion: "4 yemek kaşığı (150g)", cal: 95, prot: 5.5, carb: 7.2, fat: 4.8 }
+      ]
+    },
+    afternoonSnack: {
+      title: "İkindi Ara Öğünü: Doğal Kefir & Nar Taneleri",
+      time: "16:00",
+      icon: "fa-glass-water",
+      colorClass: "badge-snack",
+      note: "Kefir bağırsak florasını güçlendirir, nar antioksidan sağlar.",
+      items: [
+        { name: "Sade Doğal Kefir", portion: "1 su bardağı (200ml)", cal: 110, prot: 6.5, carb: 9.5, fat: 5.0 },
+        { name: "Taze Nar Taneleri", portion: "3 yemek kaşığı (50g)", cal: 42, prot: 0.8, carb: 9.5, fat: 0.4 }
+      ]
+    },
+    dinner: {
+      title: "2. Ana Öğün: Fırında Çupra / Levrek & Fırın Patates",
+      time: "19:00",
+      icon: "fa-fish",
+      colorClass: "badge-dinner",
+      note: "EPA ve DHA yağ asitleriyle kalp ve beyin sağlığını destekler.",
+      items: [
+        { name: "Fırında Çupra veya Levrek Fileto", portion: "160g (pişmiş)", cal: 270, prot: 37, carb: 0, fat: 13 },
+        { name: "Fırında Biberiyeli Patates Dilimleri", portion: "1 orta boy (110g)", cal: 98, prot: 2.2, carb: 22, fat: 0.2 },
+        { name: "Buharda Sarımsaklı Brokoli", portion: "1 tabak (150g)", cal: 70, prot: 3.0, carb: 8.0, fat: 3.5 },
+        { name: "Kırmızı Soğanlı & Limonlu Roka Salatası", portion: "1 porsiyon", cal: 50, prot: 1.5, carb: 4.5, fat: 3.0 }
+      ]
+    }
+  },
+  {
+    dayIndex: 3,
+    dayName: "4. Gün (Perşembe) - Geleneksel Bakliyat & Güç",
+    breakfast: {
+      title: "1. Ana Öğün: Çırpılmış Dereotlu Yumurta & Peynir",
+      time: "10:30",
+      icon: "fa-egg",
+      colorClass: "badge-breakfast",
+      note: "Dereotundaki kalsiyum peynir ile kemik sağlığını güçlendirir.",
+      items: [
+        { name: "Çırpılmış Dereotlu Yumurta (1 çay kaşığı tereyağı)", portion: "2 adet (100g)", cal: 170, prot: 13, carb: 1.2, fat: 12.5 },
+        { name: "Şirden Mayalı Beyaz Peynir", portion: "35g (1 dilim)", cal: 100, prot: 7.8, carb: 0.7, fat: 7.5 },
+        { name: "Kırma Yeşil Zeytin", portion: "6 adet (20g)", cal: 38, prot: 0.3, carb: 0.8, fat: 4.0 },
+        { name: "Ekşi Mayalı Ekmek", portion: "2 dilim (60g)", cal: 140, prot: 5.5, carb: 28, fat: 1.2 },
+        { name: "Ceviz İçi", portion: "2 tam ceviz (15g)", cal: 98, prot: 2.2, carb: 2.1, fat: 9.8 },
+        { name: "Salatalık & Maydanoz Söğüş", portion: "1 kase", cal: 25, prot: 1.1, carb: 4.5, fat: 0.2 }
+      ]
+    },
+    morningSnack: {
+      title: "Kuşluk Ara Öğünü",
+      time: "11:00",
+      icon: "fa-mug-hot",
+      colorClass: "badge-snack",
+      note: "Rahatlatıcı bitki çayı ve badem.",
+      items: [
+        { name: "Melisa veya Papatya Çayı", portion: "1 kupa", cal: 2, prot: 0, carb: 0.5, fat: 0 },
+        { name: "Çiğ Badem", portion: "6 adet (8g)", cal: 48, prot: 1.7, carb: 1.7, fat: 4.1 }
+      ]
+    },
+    lunch: {
+      title: "Öğle Yemeği: Zeytinyağlı Ispanak & Sarımsaklı Yoğurt",
+      time: "13:00",
+      icon: "fa-leaf",
+      colorClass: "badge-lunch",
+      note: "Demir, folat ve antioksidan zengini mevsim ıspanağı.",
+      items: [
+        { name: "Zeytinyağlı Bulgurlu Ispanak Yemeği", portion: "7-8 yemek kaşığı (180g)", cal: 150, prot: 4.5, carb: 17, fat: 7.0 },
+        { name: "Sarımsaklı Ev Yoğurdu", portion: "4 yemek kaşığı (150g)", cal: 95, prot: 5.5, carb: 7.2, fat: 4.8 },
+        { name: "Tam Buğday Ekmeği", portion: "1 ince dilim (30g)", cal: 70, prot: 2.7, carb: 14, fat: 0.6 }
+      ]
+    },
+    afternoonSnack: {
+      title: "İkindi Ara Öğünü: Muz & Doğal Fıstık Ezmesi",
+      time: "16:00",
+      icon: "fa-lemon",
+      colorClass: "badge-snack",
+      note: "Potasyum ve sağlıklı yağ kaynağı.",
+      items: [
+        { name: "Küçük Boy Yerli Muz", portion: "1 adet (90g)", cal: 80, prot: 1.0, carb: 20, fat: 0.3 },
+        { name: "Doğal Fıstık Ezmesi", portion: "1 tatlı kaşığı (10g)", cal: 60, prot: 2.5, carb: 1.8, fat: 5.0 }
+      ]
+    },
+    dinner: {
+      title: "2. Ana Öğün: Geleneksel Kuru Fasulye & Bulgur Pilavı",
+      time: "19:00",
+      icon: "fa-bowl-food",
+      colorClass: "badge-dinner",
+      note: "Baklagil ve tahıl birleşimi yüksek lif ve doygunluk verir.",
+      items: [
+        { name: "Geleneksel Hafif Kuru Fasulye", portion: "7-8 yemek kaşığı (200g)", cal: 245, prot: 14, carb: 36, fat: 5.5 },
+        { name: "Siyez Bulgur Pilavı", portion: "3 yemek kaşığı (75g)", cal: 110, prot: 3.2, carb: 23, fat: 0.8 },
+        { name: "Doğal Yayık Ayranı", portion: "1 büyük bardak (250ml)", cal: 90, prot: 4.5, carb: 6.5, fat: 4.2 },
+        { name: "Bol Limonlu Çoban Salata", portion: "1 porsiyon (1 tatlı kaşığı zeytinyağı)", cal: 75, prot: 1.5, carb: 6.0, fat: 5.0 }
+      ]
+    }
+  },
+  {
+    dayIndex: 4,
+    dayName: "5. Gün (Cuma) - Fırın Sebzeli Menemen & Köfte Menüsü",
+    breakfast: {
+      title: "1. Ana Öğün: Sebzeli Menemen & Çörek Otlu Lor",
+      time: "10:30",
+      icon: "fa-pepper-hot",
+      colorClass: "badge-breakfast",
+      note: "Cuma gününe enerjik ve lezzetli başlangıç.",
+      items: [
+        { name: "Sebzeli Fit Menemen (tatlı biber & domatesli)", portion: "1 porsiyon (2 yumurta + sebze)", cal: 225, prot: 14, carb: 7.0, fat: 15.5 },
+        { name: "Çörek Otlu Lor Peyniri", portion: "3 yemek kaşığı (50g)", cal: 70, prot: 9.0, carb: 2.0, fat: 2.5 },
+        { name: "Az Tuzlu Sele Zeytini", portion: "6 adet (20g)", cal: 40, prot: 0.3, carb: 1.0, fat: 4.0 },
+        { name: "Çavdar Ekmeği", portion: "2 dilim (60g)", cal: 140, prot: 5.2, carb: 28, fat: 1.2 },
+        { name: "Roka, Nane & Dereotu Tabağı", portion: "Serbest kase", cal: 25, prot: 1.2, carb: 4.0, fat: 0.2 }
+      ]
+    },
+    morningSnack: {
+      title: "Kuşluk Ara Öğünü",
+      time: "11:00",
+      icon: "fa-mug-hot",
+      colorClass: "badge-snack",
+      note: "Hafif metabolizma desteği.",
+      items: [
+        { name: "Limonlu Yeşil Çay", portion: "1 kupa", cal: 3, prot: 0.1, carb: 0.6, fat: 0 },
+        { name: "Ceviz İçi", portion: "1 tam (8g)", cal: 52, prot: 1.2, carb: 1.1, fat: 5.2 }
+      ]
+    },
+    lunch: {
+      title: "Öğle Yemeği: Yoğurtlu Köz Patlıcan & Nohutlu Salata",
+      time: "13:00",
+      icon: "fa-seedling",
+      colorClass: "badge-lunch",
+      note: "Köz sebze ve nohut ile hafif ama tok tutan menü.",
+      items: [
+        { name: "Yoğurtlu Köz Patlıcan & Kırmızı Biber", portion: "1 porsiyon (180g)", cal: 130, prot: 5.5, carb: 12, fat: 6.5 },
+        { name: "Haşlanmış Nohutlu Yeşil Salata", portion: "1 büyük kase (3 yk nohut)", cal: 140, prot: 6.0, carb: 20, fat: 3.5 },
+        { name: "Siyez Ekmeği", portion: "1 dilim (30g)", cal: 70, prot: 2.6, carb: 14, fat: 0.6 }
+      ]
+    },
+    afternoonSnack: {
+      title: "İkindi Ara Öğünü: Süzme Yoğurt & Mandalina",
+      time: "16:00",
+      icon: "fa-bowl-rice",
+      colorClass: "badge-snack",
+      note: "Sonbaharın C vitamini bombası mandalina.",
+      items: [
+        { name: "Süzme Yoğurt + Taze Mandalina Dilimleri", portion: "3 yk süzme yoğurt + 1 mandalina", cal: 115, prot: 7.5, carb: 14, fat: 3.5 },
+        { name: "Toz Tarçın", portion: "1 çay kaşığı", cal: 5, prot: 0.1, carb: 1.0, fat: 0 }
+      ]
+    },
+    dinner: {
+      title: "2. Ana Öğün: Fırında Izgara Köfte & Balkabağı Garnitür",
+      time: "19:00",
+      icon: "fa-burger",
+      colorClass: "badge-dinner",
+      note: "Balkabağının fırın lezzeti köfteye mükemmel eşlik eder.",
+      items: [
+        { name: "Izgara Ev Köftesi (dana kıyma)", portion: "4 adet orta boy (120g pişmiş)", cal: 270, prot: 32, carb: 3.0, fat: 14.5 },
+        { name: "Fırında Baharatlı Balkabağı & Havuç", portion: "1 tabak (180g)", cal: 85, prot: 2.0, carb: 16, fat: 2.0 },
+        { name: "Sumaklı & Maydanozlu Roka Salatası", portion: "1 tabak (1 tatlı kaşığı zeytinyağı)", cal: 75, prot: 1.5, carb: 5.0, fat: 5.5 },
+        { name: "Doğal Yayık Ayranı", portion: "1 bardak (200ml)", cal: 75, prot: 3.8, carb: 5.2, fat: 3.5 }
+      ]
+    }
+  },
+  {
+    dayIndex: 5,
+    dayName: "6. Gün (Cumartesi) - Renkli Kinoa Salatası & Hindi Sote",
+    breakfast: {
+      title: "1. Ana Öğün: Hindi Fümeli Sıcak Tost & Yumurta",
+      time: "10:30",
+      icon: "fa-bread-slice",
+      colorClass: "badge-breakfast",
+      note: "Hafta sonu pratikliği için dengeli tost tabağı.",
+      items: [
+        { name: "Haşlanmış Yumurta", portion: "1 adet (50g)", cal: 75, prot: 6.5, carb: 0.5, fat: 5.3 },
+        { name: "Tam Buğday Ekmeğinde Hindi Fümeli Tost", portion: "2 dilim ekmek + 30g kaşar + 2 dilim füme", cal: 260, prot: 17, carb: 28, fat: 9.5 },
+        { name: "Zeytin Çeşitleri", portion: "6 adet (20g)", cal: 40, prot: 0.3, carb: 1.0, fat: 4.0 },
+        { name: "Çiğ Fındık", portion: "8 adet (10g)", cal: 65, prot: 1.5, carb: 1.7, fat: 6.0 },
+        { name: "Çeri Domates & Biber Söğüş", portion: "1 tabak", cal: 30, prot: 1.2, carb: 5.0, fat: 0.3 }
+      ]
+    },
+    morningSnack: {
+      title: "Kuşluk Ara Öğünü",
+      time: "11:00",
+      icon: "fa-mug-hot",
+      colorClass: "badge-snack",
+      note: "Keyifli hafta sonu kahvesi.",
+      items: [
+        { name: "Filtre Kahve (şekersiz)", portion: "1 büyük kupa", cal: 3, prot: 0.2, carb: 0.3, fat: 0 },
+        { name: "Kuru İncir", portion: "1 adet (20g)", cal: 50, prot: 0.6, carb: 12, fat: 0.2 }
+      ]
+    },
+    lunch: {
+      title: "Öğle Yemeği: Nar Taneli & Kinoalı Akdeniz Salatası",
+      time: "13:00",
+      icon: "fa-seedling",
+      colorClass: "badge-lunch",
+      note: "Tam protein içeren kinoa ve antioksidan deposu nar.",
+      items: [
+        { name: "Renkli Kinoa & Nar Taneli Akdeniz Salatası", portion: "1 büyük tabak (4 yk pişmiş kinoa + 30g beyaz peynir + 2 yk nar)", cal: 240, prot: 9.5, carb: 28, fat: 9.5 },
+        { name: "Tam Buğday Galeta", portion: "2 adet (20g)", cal: 80, prot: 2.5, carb: 15, fat: 1.0 }
+      ]
+    },
+    afternoonSnack: {
+      title: "İkindi Ara Öğünü: Yeşil Elma & Badem",
+      time: "16:00",
+      icon: "fa-apple-whole",
+      colorClass: "badge-snack",
+      note: "Lif ve sağlıklı yağ dengesi.",
+      items: [
+        { name: "Ekşi Yeşil Elma", portion: "1 orta boy (150g)", cal: 78, prot: 0.5, carb: 19, fat: 0.3 },
+        { name: "Çiğ Badem", portion: "8 adet (10g)", cal: 60, prot: 2.2, carb: 2.0, fat: 5.2 }
+      ]
+    },
+    dinner: {
+      title: "2. Ana Öğün: Mantarlı Hindi Sote & Karabuğday",
+      time: "19:00",
+      icon: "fa-fire-burner",
+      colorClass: "badge-dinner",
+      note: "Dışarıdaki restoran lezzetinde sağlıklı güveç alternatifi.",
+      items: [
+        { name: "Mantarlı & Biberli Hindi Kuşbaşı Sote", portion: "150g hindi göğsü + sebzeler", cal: 240, prot: 40, carb: 5.0, fat: 6.0 },
+        { name: "Karabuğday (Greçka) Pilavı", portion: "3 yemek kaşığı (80g)", cal: 110, prot: 3.2, carb: 23, fat: 0.8 },
+        { name: "Naneli & Sarımsaklı Ev Cacığı", portion: "1 büyük kase (180g)", cal: 95, prot: 5.8, carb: 7.5, fat: 4.5 },
+        { name: "Limonlu & Zeytinyağlı Roka Salatası", portion: "1 kase", cal: 65, prot: 1.2, carb: 4.0, fat: 5.0 }
+      ]
+    }
+  },
+  {
+    dayIndex: 6,
+    dayName: "7. Gün (Pazar) - Sebzeli Frittata & Arındırıcı Kapanış",
+    breakfast: {
+      title: "1. Ana Öğün: Kabaklı & Dereotlu Fırın Pazar Frittatası",
+      time: "10:30",
+      icon: "fa-egg",
+      colorClass: "badge-breakfast",
+      note: "Pazar sabahına yakışan nefis fırın omleti.",
+      items: [
+        { name: "Sebzeli Fırın Frittata (2 yumurta + ıspanak + kabak)", portion: "1 dilim (180g)", cal: 190, prot: 14.5, carb: 4.5, fat: 12 },
+        { name: "Çeçil / Beyaz Peynir", portion: "35g (1 dilim)", cal: 100, prot: 7.5, carb: 0.6, fat: 7.8 },
+        { name: "Siyah Zeytin", portion: "6 adet (20g)", cal: 40, prot: 0.3, carb: 1.0, fat: 4.0 },
+        { name: "Ekşi Mayalı Ekmek", portion: "2 ince dilim (60g)", cal: 140, prot: 5.5, carb: 28, fat: 1.2 },
+        { name: "Bol Dereotu, Maydanoz, Salatalık", portion: "Serbest tabak", cal: 30, prot: 1.5, carb: 5.0, fat: 0.3 }
+      ]
+    },
+    morningSnack: {
+      title: "Kuşluk Ara Öğünü",
+      time: "11:00",
+      icon: "fa-mug-hot",
+      colorClass: "badge-snack",
+      note: "Haftalık dinlenme molası.",
+      items: [
+        { name: "Taze Zencefilli & Limonlu Yeşil Çay", portion: "1 kupa", cal: 4, prot: 0.1, carb: 0.8, fat: 0 },
+        { name: "Çiğ Badem", portion: "6 adet (8g)", cal: 48, prot: 1.7, carb: 1.7, fat: 4.1 }
+      ]
+    },
+    lunch: {
+      title: "Öğle Yemeği: Zeytinyağlı Kereviz & Yoğurt",
+      time: "13:00",
+      icon: "fa-leaf",
+      colorClass: "badge-lunch",
+      note: "Sindirim sistemini rahatlatan hafif kereviz yemeği.",
+      items: [
+        { name: "Zeytinyağlı Kereviz & Havuç Yemeği", portion: "7 yemek kaşığı (180g)", cal: 135, prot: 2.5, carb: 18, fat: 6.0 },
+        { name: "Siyez Bulguru", portion: "3 yemek kaşığı (75g)", cal: 110, prot: 3.2, carb: 23, fat: 0.8 },
+        { name: "Probiyotik Yoğurt", portion: "3 yemek kaşığı (120g)", cal: 80, prot: 4.5, carb: 6.0, fat: 4.0 }
+      ]
+    },
+    afternoonSnack: {
+      title: "İkindi Ara Öğünü: Doğal Kefir & Chia & Nar",
+      time: "16:00",
+      icon: "fa-seedling",
+      colorClass: "badge-snack",
+      note: "Probiyotik ve omega-3 lif desteği.",
+      items: [
+        { name: "Sade Doğal Kefir veya Yoğurt", portion: "1 su bardağı (200ml)", cal: 110, prot: 6.5, carb: 9.5, fat: 5.0 },
+        { name: "Nar Taneleri & Chia Tohumu", portion: "2 yk nar + 1 tatlı kaşığı chia", cal: 55, prot: 1.5, carb: 7.5, fat: 2.0 }
+      ]
+    },
+    dinner: {
+      title: "2. Ana Öğün: Kırmızı Mercimek & Balkabağı Çorbası & Fırın Karnabahar",
+      time: "19:00",
+      icon: "fa-bowl-food",
+      colorClass: "badge-dinner",
+      note: "Haftayı hafif, sindirimi kolay ve arındırıcı kapatmak için ideal menü.",
+      items: [
+        { name: "Kırmızı Mercimek & Balkabağı Çorbası", portion: "1.5 kepçe (250ml)", cal: 175, prot: 8.5, carb: 28, fat: 3.5 },
+        { name: "Fırında Baharatlı Karnabahar / Brokoli", portion: "1 tabak (180g)", cal: 85, prot: 3.2, carb: 10, fat: 3.5 },
+        { name: "Doğal Ev Yoğurdu (pul biberli)", portion: "4 yemek kaşığı (150g)", cal: 95, prot: 5.5, carb: 7.2, fat: 4.8 },
+        { name: "Cevizli Roka Salatası", portion: "1 porsiyon (1 tam ceviz + 1 tatlı kaşığı zeytinyağı)", cal: 110, prot: 2.2, carb: 4.5, fat: 9.5 }
+      ]
+    }
+  }
+];
+
+/**
+ * Aktif Haftalık Menüyü Döndür (Pazar Günleri Otomatik Yenilenir)
+ */
+function getActiveWeeklyMeals() {
+  const rot = getWeeklyRotationData();
+  return rot.activeWeekIndex === 1 ? WEEK_B_MEALS : WEEK_A_MEALS;
+}
+
+// Aktif Haftalık Menü Referansı
+let MASTER_MEALS = getActiveWeeklyMeals();
+
+/**
+ * Bildirim Toast Mesajı Göster
+ */
+function showNotificationToast(msg) {
+  let toast = document.getElementById("diet-notification-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "diet-notification-toast";
+    toast.style.position = "fixed";
+    toast.style.bottom = "24px";
+    toast.style.right = "24px";
+    toast.style.background = "#065f46";
+    toast.style.color = "#ffffff";
+    toast.style.padding = "12px 20px";
+    toast.style.borderRadius = "8px";
+    toast.style.fontSize = "13.5px";
+    toast.style.fontWeight = "600";
+    toast.style.boxShadow = "0 10px 25px -5px rgba(0,0,0,0.15)";
+    toast.style.zIndex = "9999";
+    toast.style.transition = "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)";
+    toast.style.display = "flex";
+    toast.style.alignItems = "center";
+    toast.style.gap = "10px";
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${msg}`;
+  toast.style.opacity = "1";
+  toast.style.transform = "translateY(0)";
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(12px)";
+  }, 3200);
+}
+
+/**
+ * Kullanıcı Manuel Olarak Farklı Hafta Menüsü Seçtiğinde
+ */
+function rotateWeeklyMenuManual() {
+  let currentOffset = 0;
+  try {
+    const saved = localStorage.getItem("diyetweb_week_offset");
+    if (saved !== null) currentOffset = parseInt(saved, 10) || 0;
+  } catch (e) {}
+
+  const newOffset = (currentOffset + 1) % 2;
+  localStorage.setItem("diyetweb_week_offset", newOffset.toString());
+
+  MASTER_MEALS = getActiveWeeklyMeals();
+  updateWeeklyRotationUI();
+  updateDaySelectorOptions();
+  renderMealPlan();
+
+  const rot = getWeeklyRotationData();
+  const weekTitle = rot.activeWeekIndex === 1 ? "2. Hafta Menüsü (Mevsimsel Sebze & Zindelik)" : "1. Hafta Menüsü (Akdeniz & Doğal Form)";
+  showNotificationToast(`🔄 Menü Değiştirildi: ${weekTitle} yüklendi.`);
+}
+
+/**
+ * Pazar Rotasyon ve Mevsim Bilgilendirme Çubuğunu Güncelle
+ */
+function updateWeeklyRotationUI() {
+  const rot = getWeeklyRotationData();
+  const season = getCurrentSeason();
+
+  const seasonBadge = document.getElementById("current-season-badge");
+  const weeklyUpdateBadge = document.getElementById("weekly-update-badge");
+  const dateRangeDisplay = document.getElementById("week-date-range-display");
+
+  if (seasonBadge) {
+    seasonBadge.innerHTML = `<i class="fa-solid ${season.icon}"></i> <strong>Mevsim:</strong> ${season.name}`;
+    seasonBadge.title = season.produceNote;
+  }
+
+  if (weeklyUpdateBadge) {
+    if (rot.isSunday) {
+      weeklyUpdateBadge.className = "wrs-badge wrs-sunday-today";
+      weeklyUpdateBadge.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin"></i> Bugün Pazar! Haftalık Menü Yenilendi`;
+    } else {
+      weeklyUpdateBadge.className = "wrs-badge wrs-calendar";
+      const weekLabel = rot.activeWeekIndex === 1 ? "2. Hafta Menüsü" : "1. Hafta Menüsü";
+      weeklyUpdateBadge.innerHTML = `<i class="fa-solid fa-calendar-check"></i> ${weekLabel} (Her Pazar Yenilenir)`;
+    }
+  }
+
+  if (dateRangeDisplay) {
+    dateRangeDisplay.textContent = rot.dateRangeStr;
+  }
+}
+
+/**
+ * Gün Seçici (Dropdown) Seçeneklerini Aktif Haftaya Göre Yenile
+ */
+function updateDaySelectorOptions() {
+  if (!daySelector) return;
+  const currentVal = daySelector.value;
+  daySelector.innerHTML = "";
+  MASTER_MEALS.forEach((plan, index) => {
+    const opt = document.createElement("option");
+    opt.value = index;
+    opt.textContent = plan.dayName;
+    if (index === currentDayIndex) opt.selected = true;
+    daySelector.appendChild(opt);
+  });
+}
+
 // ==========================================
-// 3. UYGULAMA DURUMU (STATE)
+// 4. UYGULAMA DURUMU (STATE)
 // ==========================================
 let currentDayIndex = 0;
 let isDiabeticMode = false;
@@ -775,46 +1439,85 @@ function updateMetricsUI() {
 }
 
 /**
- * Seçilen Öğün Sayısına Göre Menüyü Dinamik Oluştur
+ * Porsiyon Metnini Çarpanına Göre Dinamik Olarak Formatla
  */
-function renderMealPlan() {
-  const currentPlan = MASTER_MEALS[currentDayIndex];
-  if (!currentPlan) return;
+function formatScaledPortion(name, portion, mult) {
+  if (!portion || mult === 1) return portion;
+  if (/serbest/i.test(portion)) return portion;
 
-  // Seçilen öğün desenine göre öğün listesini hazırla
-  let activeMeals = [];
+  let scaled = portion;
 
-  if (selectedMealPattern === "2_meals") {
-    // 2 Öğün: Kahvaltı + Akşam
-    activeMeals = [
+  // 1. Gramaj veya ml içerenleri ölçekle (örn: 100g, 150g, 200ml)
+  scaled = scaled.replace(/(\d+(?:\.\d+)?)\s*(g|ml)\b/gi, (match, num, unit) => {
+    let val = parseFloat(num) * mult;
+    if (unit.toLowerCase() === 'g') {
+      if (val >= 40) {
+        val = Math.round(val / 5) * 5;
+      } else {
+        val = Math.round(val);
+      }
+    } else {
+      val = Math.round(val / 10) * 10;
+    }
+    return `${val}${unit}`;
+  });
+
+  // 2. Adet / Dilim / Kaşık ölçekleme (örn: 2 adet, 2 dilim, 4 yemek kaşığı, 2 tam ceviz)
+  scaled = scaled.replace(/(\d+)(?:-(\d+))?\s*(adet|dilim|ince dilim|yemek kaşığı|tatlı kaşığı|tam ceviz|kepçe|fincan|kupa|bardak|su bardağı)/gi, (match, n1, n2, unit) => {
+    let baseNum = n2 ? (parseFloat(n1) + parseFloat(n2)) / 2 : parseFloat(n1);
+    let newNum = baseNum * mult;
+    let formattedNum;
+    if (newNum < 1.3) {
+      formattedNum = newNum >= 0.7 ? "1" : "0.5";
+    } else if (newNum < 2.3) {
+      formattedNum = newNum >= 1.8 ? "2" : "1.5";
+    } else if (newNum < 3.3) {
+      formattedNum = newNum >= 2.8 ? "3" : "2.5";
+    } else {
+      formattedNum = Math.round(newNum).toString();
+    }
+    return `${formattedNum} ${unit}`;
+  });
+
+  return scaled;
+}
+
+/**
+ * Belirli Bir Gün İçin Kalori ve Öğün Desenine Göre Tam Ölçeklenmiş Menüyü Hesapla
+ * - Hedef kaloriye TAM eşitlenir (liste ve porsiyonlar kaloriye göre birebir ayarlanır).
+ * - Protein asla 100g'ı aşamaz (maksimum 100g garantisi).
+ * - Porsiyonlar ve besin değerleri tutarlı şekilde ölçeklenir.
+ */
+function computeDayMeals(dayIndex, targetCal, mealPattern) {
+  const currentPlan = MASTER_MEALS[dayIndex] || MASTER_MEALS[0];
+  let rawMeals = [];
+
+  if (mealPattern === "2_meals") {
+    rawMeals = [
       { ...currentPlan.breakfast, title: "1. Ana Öğün: Kahvaltı", time: "10:30 - 11:30" },
       { ...currentPlan.dinner, title: "2. Ana Öğün: Akşam Yemeği", time: "18:30 - 19:30" }
     ];
-  } else if (selectedMealPattern === "2_meals_1_snack") {
-    // 2 Ana + 1 Ara
-    activeMeals = [
+  } else if (mealPattern === "2_meals_1_snack") {
+    rawMeals = [
       { ...currentPlan.breakfast, title: "1. Ana Öğün: Kahvaltı", time: "10:30 - 11:30" },
       { ...currentPlan.afternoonSnack, title: "Ara Öğün: İkindi Atıştırmalığı", time: "15:30 - 16:30" },
       { ...currentPlan.dinner, title: "2. Ana Öğün: Akşam Yemeği", time: "19:00 - 20:00" }
     ];
-  } else if (selectedMealPattern === "3_meals") {
-    // 3 Ana Öğün
-    activeMeals = [
+  } else if (mealPattern === "3_meals") {
+    rawMeals = [
       { ...currentPlan.breakfast, title: "1. Ana Öğün: Kahvaltı", time: "08:30 - 09:30" },
       { ...currentPlan.lunch, title: "2. Ana Öğün: Öğle Yemeği", time: "12:30 - 13:30" },
       { ...currentPlan.dinner, title: "3. Ana Öğün: Akşam Yemeği", time: "19:00 - 20:00" }
     ];
-  } else if (selectedMealPattern === "3_meals_1_snack") {
-    // 3 Ana + 1 Ara
-    activeMeals = [
+  } else if (mealPattern === "3_meals_1_snack") {
+    rawMeals = [
       { ...currentPlan.breakfast, title: "1. Ana Öğün: Kahvaltı", time: "08:30 - 09:30" },
       { ...currentPlan.lunch, title: "2. Ana Öğün: Öğle Yemeği", time: "12:30 - 13:30" },
       { ...currentPlan.afternoonSnack, title: "Ara Öğün: İkindi Denge Öğünü", time: "16:00 - 16:30" },
       { ...currentPlan.dinner, title: "3. Ana Öğün: Akşam Yemeği", time: "19:30 - 20:30" }
     ];
-  } else if (selectedMealPattern === "3_meals_2_snacks") {
-    // 3 Ana + 2 Ara
-    activeMeals = [
+  } else {
+    rawMeals = [
       { ...currentPlan.breakfast, title: "1. Ana Öğün: Kahvaltı", time: "08:30 - 09:30" },
       { ...currentPlan.morningSnack, title: "1. Ara Öğün: Kuşluk Molası", time: "10:45 - 11:15" },
       { ...currentPlan.lunch, title: "2. Ana Öğün: Öğle Yemeği", time: "12:30 - 13:30" },
@@ -823,44 +1526,173 @@ function renderMealPlan() {
     ];
   }
 
-  // Kalori ölçekleme faktörü
-  // Öğün sayısına göre baz kalori ayarı
-  let baseSum = 0;
-  activeMeals.forEach(m => m.items.forEach(i => baseSum += i.cal));
-  const scale = calculatedMetrics.targetCalories / (baseSum || 1600);
+  // Master kopyasını korumak için derin klonlama yap
+  const meals = rawMeals.map(m => ({
+    ...m,
+    items: m.items.map(it => ({ ...it }))
+  }));
+
+  // Baz toplamları hesapla
+  let baseCal = 0;
+  let baseProt = 0;
+  let baseCarb = 0;
+  let baseFat = 0;
+  meals.forEach(m => {
+    m.items.forEach(it => {
+      baseCal += it.cal;
+      baseProt += it.prot;
+      baseCarb += it.carb;
+      baseFat += it.fat;
+    });
+  });
+
+  const targetProtein = Math.min(98, calculatedMetrics.targetProtein || 85); // 100g tavanı asla aşılmaz
+  const calRatio = targetCal / (baseCal || 1600);
+
+  // Protein zengini besinler kontrolü
+  function isProteinRich(item) {
+    return (item.prot >= 6.5) || /(yumurta|peynir|tavuk|hindi|balık|somon|levrek|köfte|lor|ton balığı|kıyma|nohut|barbunya|mercimek)/i.test(item.name);
+  }
+
+  let protRatio = Math.min(calRatio, targetProtein / (baseProt || 1));
+  if (baseProt * protRatio > 96) {
+    protRatio = 96 / (baseProt || 1);
+  }
+  protRatio = Math.max(0.65, Math.min(1.45, protRatio));
+
+  let scaledProtItemCals = 0;
+  let baseOtherItemCals = 0;
+  meals.forEach(m => {
+    m.items.forEach(it => {
+      if (isProteinRich(it)) {
+        scaledProtItemCals += it.cal * protRatio;
+      } else {
+        baseOtherItemCals += it.cal;
+      }
+    });
+  });
+
+  const remainingCalNeeded = Math.max(100, targetCal - scaledProtItemCals);
+  let otherRatio = remainingCalNeeded / (baseOtherItemCals || 1);
+  otherRatio = Math.max(0.6, Math.min(2.8, otherRatio));
+
+  // Tüm besinleri ölçekle
+  let computedItems = [];
+  meals.forEach(m => {
+    m.items = m.items.map(it => {
+      const isProt = isProteinRich(it);
+      const ratio = isProt ? protRatio : otherRatio;
+
+      let scaledCal = Math.round(it.cal * ratio);
+      let scaledProt = isProt ? (Math.round(it.prot * protRatio * 10) / 10) : (Math.round(it.prot * ratio * 10) / 10);
+      let scaledCarb = Math.round(it.carb * ratio * 10) / 10;
+      let scaledFat = Math.round(it.fat * ratio * 10) / 10;
+      let scaledPortion = formatScaledPortion(it.name, it.portion, ratio);
+
+      const newItem = {
+        name: it.name,
+        portion: scaledPortion,
+        cal: scaledCal,
+        prot: scaledProt,
+        carb: scaledCarb,
+        fat: scaledFat,
+        isProt
+      };
+      computedItems.push(newItem);
+      return newItem;
+    });
+  });
+
+  // Kalori toplamını hedef kaloriye TAM kalibre et
+  let totalCal = computedItems.reduce((acc, it) => acc + it.cal, 0);
+  let calDiff = targetCal - totalCal;
+
+  if (calDiff !== 0) {
+    const adjustableItems = computedItems.filter(it => 
+      /(ekmek|bulgur|pilav|patates|meyve|yulaf|elma|tost|fasulye|çorba)/i.test(it.name)
+    );
+    const targetItems = adjustableItems.length > 0 ? adjustableItems : computedItems;
+
+    let sign = calDiff > 0 ? 1 : -1;
+    let absDiff = Math.abs(calDiff);
+    let idx = 0;
+    while (absDiff > 0 && targetItems.length > 0) {
+      const it = targetItems[idx % targetItems.length];
+      if (sign < 0 && it.cal <= 15) {
+        idx++;
+        continue;
+      }
+      it.cal += sign;
+      it.carb = Math.max(0, Math.round((it.carb + sign * 0.25) * 10) / 10);
+      absDiff--;
+      idx++;
+    }
+  }
+
+  // Protein 100g kuralı son kontrolü (Asla 100g'ı geçemez)
+  let totalProt = computedItems.reduce((acc, it) => acc + it.prot, 0);
+  if (totalProt > 98) {
+    let excess = totalProt - 98;
+    const highProtItems = computedItems.filter(it => it.prot > 8).sort((a, b) => b.prot - a.prot);
+    for (let it of highProtItems) {
+      if (excess <= 0) break;
+      let reduction = Math.min(excess, it.prot * 0.15);
+      it.prot = Math.round((it.prot - reduction) * 10) / 10;
+      it.cal = Math.round(it.cal - (reduction * 4));
+      excess -= reduction;
+    }
+  }
+
+  // Öğün alt toplamlarını hesapla
+  let finalTotalCal = 0;
+  let finalTotalProt = 0;
+  let finalTotalCarb = 0;
+  let finalTotalFat = 0;
+
+  meals.forEach(m => {
+    let mCal = 0;
+    let mProt = 0;
+    let mCarb = 0;
+    let mFat = 0;
+    m.items.forEach(it => {
+      mCal += it.cal;
+      mProt += it.prot;
+      mCarb += it.carb;
+      mFat += it.fat;
+    });
+    m.totalCal = mCal;
+    m.totalProt = Math.round(mProt * 10) / 10;
+    m.totalCarb = Math.round(mCarb * 10) / 10;
+    m.totalFat = Math.round(mFat * 10) / 10;
+    m.totalKE = (m.totalCarb / 15).toFixed(1);
+
+    finalTotalCal += mCal;
+    finalTotalProt += mProt;
+    finalTotalCarb += mCarb;
+    finalTotalFat += mFat;
+  });
+
+  return {
+    dayName: currentPlan.dayName,
+    meals,
+    totalCal: finalTotalCal,
+    totalProt: Math.round(finalTotalProt),
+    totalCarb: Math.round(finalTotalCarb),
+    totalFat: Math.round(finalTotalFat),
+    totalKE: (finalTotalCarb / 15).toFixed(1)
+  };
+}
+
+/**
+ * Seçilen Gün ve Öğün Sayısına Göre Menüyü Dinamik Oluştur ve Ekrana Bas
+ */
+function renderMealPlan() {
+  const dayData = computeDayMeals(currentDayIndex, calculatedMetrics.targetCalories, selectedMealPattern);
+  if (!dayData || !dayData.meals) return;
 
   mealsContainer.innerHTML = "";
 
-  let dailyTotalCal = 0;
-  let dailyTotalProt = 0;
-  let dailyTotalCarbs = 0;
-  let dailyTotalFat = 0;
-
-  activeMeals.forEach((meal) => {
-    let mealCal = 0;
-    let mealProt = 0;
-    let mealCarbs = 0;
-    let mealFat = 0;
-
-    meal.items.forEach(item => {
-      const itemCal = Math.round(item.cal * (0.85 + 0.15 * scale));
-      const itemProt = item.prot; // Protein 100g kuralı gereği sabit ve garantili tutulur
-      const itemCarb = Math.round(item.carb * scale);
-      const itemFat = Math.round(item.fat * (0.9 + 0.1 * scale));
-
-      mealCal += itemCal;
-      mealProt += itemProt;
-      mealCarbs += itemCarb;
-      mealFat += itemFat;
-    });
-
-    dailyTotalCal += mealCal;
-    dailyTotalProt += mealProt;
-    dailyTotalCarbs += mealCarbs;
-    dailyTotalFat += mealFat;
-
-    const mealKE = (mealCarbs / 15).toFixed(1);
-
+  dayData.meals.forEach((meal) => {
     const mealCard = document.createElement("div");
     mealCard.className = "meal-item";
 
@@ -879,10 +1711,10 @@ function renderMealPlan() {
     // Diyabet uyarısı (Eğer tek öğünde 4 KE / 60g aşılırsa)
     let diabeticAlertTag = "";
     if (isDiabeticMode) {
-      if (mealCarbs > 60) {
-        diabeticAlertTag = `<span class="meal-ke-tag" style="background:#fee2e2;color:#991b1b;"><i class="fa-solid fa-triangle-exclamation"></i> ${mealKE} KE (Yüksek)</span>`;
+      if (meal.totalCarb > 60) {
+        diabeticAlertTag = `<span class="meal-ke-tag" style="background:#fee2e2;color:#991b1b;"><i class="fa-solid fa-triangle-exclamation"></i> ${meal.totalKE} KE (Yüksek)</span>`;
       } else {
-        diabeticAlertTag = `<span class="meal-ke-tag"><i class="fa-solid fa-droplet"></i> ${mealKE} KE (${mealCarbs}g CHO)</span>`;
+        diabeticAlertTag = `<span class="meal-ke-tag"><i class="fa-solid fa-droplet"></i> ${meal.totalKE} KE (${meal.totalCarb}g CHO)</span>`;
       }
     }
 
@@ -898,8 +1730,8 @@ function renderMealPlan() {
           </div>
         </div>
         <div class="meal-nutrients-summary">
-          <span class="meal-cals"><i class="fa-solid fa-fire"></i> ${mealCal} kcal</span>
-          <span class="meal-prot"><i class="fa-solid fa-shield"></i> ${mealProt.toFixed(1)}g Protein</span>
+          <span class="meal-cals"><i class="fa-solid fa-fire"></i> ${meal.totalCal} kcal</span>
+          <span class="meal-prot"><i class="fa-solid fa-shield"></i> ${meal.totalProt.toFixed(1)}g Protein</span>
           ${diabeticAlertTag}
         </div>
       </div>
@@ -919,25 +1751,24 @@ function renderMealPlan() {
   });
 
   // Toplam Değerleri Güncelle
-  totalMealCaloriesEl.textContent = `${dailyTotalCal.toLocaleString('tr-TR')} kcal`;
-  totalMealProteinEl.textContent = `${dailyTotalProt.toFixed(0)}g`;
-  totalMealCarbsEl.textContent = `${dailyTotalCarbs}g`;
-  totalMealFatEl.textContent = `${dailyTotalFat}g`;
-
-  // KE Toplamı
-  const totalDailyKE = (dailyTotalCarbs / 15).toFixed(1);
-  totalMealKeEl.textContent = `${totalDailyKE} KE`;
+  totalMealCaloriesEl.textContent = `${dayData.totalCal.toLocaleString('tr-TR')} kcal`;
+  totalMealProteinEl.textContent = `${dayData.totalProt}g`;
+  totalMealCarbsEl.textContent = `${dayData.totalCarb}g`;
+  totalMealFatEl.textContent = `${dayData.totalFat}g`;
+  totalMealKeEl.textContent = `${dayData.totalKE} KE`;
 
   // Protein 100g kuralı rozeti
   const protPillBadge = document.querySelector(".highlight-pill .stat-badge");
-  if (dailyTotalProt <= 100) {
-    protPillBadge.innerHTML = `<i class="fa-solid fa-check"></i> ${dailyTotalProt.toFixed(0)}g ≤ 100g (Kurala Uygun)`;
-    protPillBadge.style.background = "#dbeafe";
-    protPillBadge.style.color = "#1e40af";
-  } else {
-    protPillBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 100g Limiti Aşıldı!`;
-    protPillBadge.style.background = "#fee2e2";
-    protPillBadge.style.color = "#991b1b";
+  if (protPillBadge) {
+    if (dayData.totalProt <= 100) {
+      protPillBadge.innerHTML = `<i class="fa-solid fa-check"></i> ${dayData.totalProt}g ≤ 100g (Kurala Uygun)`;
+      protPillBadge.style.background = "#dbeafe";
+      protPillBadge.style.color = "#1e40af";
+    } else {
+      protPillBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 100g Limiti Aşıldı!`;
+      protPillBadge.style.background = "#fee2e2";
+      protPillBadge.style.color = "#991b1b";
+    }
   }
 
   daySelector.value = currentDayIndex;
@@ -1306,49 +2137,384 @@ function switchTab(tabId) {
   });
 }
 
+// ==========================================
+// YALNIZCA İLGİLİ ALANI YAZDIRMA (İZOLE YAZDIRMA SİSTEMİ)
+// ==========================================
+
+const MEAL_PATTERN_LABELS = {
+  "2_meals": "2 Öğün (Sabah + Akşam)",
+  "2_meals_1_snack": "2 Ana Öğün + 1 Ara",
+  "3_meals": "3 Ana Öğün",
+  "3_meals_1_snack": "3 Ana Öğün + 1 Ara",
+  "3_meals_2_snacks": "3 Ana Öğün + 2 Ara"
+};
+
+/**
+ * Sayfadaki gereksiz hiçbir alanı yazdırmadan, yalnızca verilen HTML içeriğini
+ * #print-only-sheet üzerinden temiz A4 formatında yazdırır.
+ * - body.printing-dedicated-sheet sınıfı ile sayfanın tüm kontrolleri, butonları ve menüleri gizlenir.
+ * - Çıktıda yalnızca saf diyet çizelgesi yer alır.
+ * - Yatay (A4 landscape) veya dikey (A4 portrait) modu destekler.
+ */
+function printIsolatedSheet(documentTitle, htmlBody, isLandscape = false) {
+  let sheet = document.getElementById("print-only-sheet");
+  if (!sheet) {
+    sheet = document.createElement("div");
+    sheet.id = "print-only-sheet";
+    sheet.className = "print-only-sheet";
+    document.body.appendChild(sheet);
+  }
+
+  const originalTitle = document.title;
+  document.title = documentTitle;
+  sheet.innerHTML = htmlBody;
+
+  let pageStyle = document.getElementById("dynamic-print-page-style");
+  if (!pageStyle) {
+    pageStyle = document.createElement("style");
+    pageStyle.id = "dynamic-print-page-style";
+    document.head.appendChild(pageStyle);
+  }
+  pageStyle.innerHTML = `@page { size: ${isLandscape ? "A4 landscape" : "A4 portrait"} !important; margin: ${isLandscape ? "6mm 8mm" : "10mm 12mm"} !important; }`;
+
+  document.body.classList.add("printing-dedicated-sheet");
+
+  const cleanup = () => {
+    document.body.classList.remove("printing-dedicated-sheet");
+    document.title = originalTitle;
+    if (pageStyle) pageStyle.innerHTML = "";
+    sheet.innerHTML = "";
+    window.removeEventListener("afterprint", cleanup);
+  };
+  window.addEventListener("afterprint", cleanup);
+
+  setTimeout(() => {
+    window.print();
+  }, 100);
+
+  setTimeout(cleanup, 4500);
+}
+
+// Alias for backwards compatibility
+function printHtmlViaIframe(documentTitle, htmlBody, isLandscape = false) {
+  printIsolatedSheet(documentTitle, htmlBody, isLandscape);
+}
+
+/**
+ * 1. Yalnızca Seçili Günün Yemek Listesini Yazdır
+ */
+function printCurrentDayPlan() {
+  const dayData = computeDayMeals(currentDayIndex, calculatedMetrics.targetCalories, selectedMealPattern);
+  const patternText = MEAL_PATTERN_LABELS[selectedMealPattern] || "2 Ana + 1 Ara";
+
+  let mealsHtml = dayData.meals.map(meal => {
+    const rows = meal.items.map(it => {
+      const keTag = isDiabeticMode ? `<span class="item-ke-inline">${(it.carb / 15).toFixed(1)} KE</span>` : '';
+      return `
+        <tr>
+          <td class="ps-food-name">${it.name} ${keTag}</td>
+          <td class="ps-portion">${it.portion}</td>
+          <td class="ps-nutrients">${it.cal} kcal | ${it.prot}g Protein | ${it.carb}g Karb</td>
+        </tr>
+      `;
+    }).join("");
+
+    return `
+      <div class="ps-meal-card">
+        <div class="ps-meal-header">
+          <span>${meal.title} (${meal.time})</span>
+          <span>${meal.totalCal} kcal | ${meal.totalProt}g P</span>
+        </div>
+        <table class="ps-table">
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  }).join("");
+
+  const keSummary = isDiabeticMode ? ` | Karb: <strong>${dayData.totalCarb}g (${dayData.totalKE} KE)</strong>` : ` | Karb: <strong>${dayData.totalCarb}g</strong>`;
+
+  const html = `
+    <div class="ps-header">
+      <div>
+        <div class="ps-brand"><i class="fa-solid fa-leaf"></i> DiyetWeb - Günlük Beslenme Planı</div>
+        <div class="ps-subtitle">Kişiye Özel Kalori & Porsiyon Listesi (100g Protein Güvenceli)</div>
+      </div>
+      <div class="ps-meta">
+        <strong>Kişisel Hedef: ${calculatedMetrics.targetCalories} kcal</strong> | Protein: <strong>${dayData.totalProt}g ≤ 100g</strong><br>
+        Öğün Düzeni: <strong>${patternText}</strong><br>
+        Tarih: ${new Date().toLocaleDateString('tr-TR')}
+      </div>
+    </div>
+
+    <div class="ps-day-block">
+      <div class="ps-day-title">
+        <span>${dayData.dayName}</span>
+        <span>Toplam: ${dayData.totalCal} kcal</span>
+      </div>
+      ${mealsHtml}
+    </div>
+
+    <div class="ps-summary-bar">
+      <span><strong>Günlük Toplam:</strong> ${dayData.totalCal} kcal</span>
+      <span>Protein: <strong>${dayData.totalProt}g</strong> (Maks. 100g Kuralına Uygun)</span>
+      <span>${keSummary}</span>
+      <span>Yağ: <strong>${dayData.totalFat}g</strong></span>
+    </div>
+
+    <div class="ps-advice-box">
+      <strong><i class="fa-solid fa-circle-info"></i> Beslenme Notu & Tavsiye:</strong> Günde en az ${calculatedMetrics.targetWater} litre su tüketiniz. Porsiyon gramajları ve adetleri, günlük ${calculatedMetrics.targetCalories} kcal hedefinize ve maksimum 100g protein kuralına tam uyacak şekilde özel olarak hesaplanmıştır.
+    </div>
+  `;
+
+  printHtmlViaIframe("DiyetWeb - Günlük Beslenme Tablosu", html);
+}
+
+/**
+ * 2. 7 Günlük Tüm Haftayı Tablo Şeklinde A4 Yatay Boyutunda Yazdır
+ * - Haftanın günleri (Pazartesi-Pazar) satırlarda yer alır.
+ * - Öğünler sütunlarda yer alır.
+ * - Her yemek adı yanında miktarı (portion) ve kalori değeri (cal) bulunur.
+ * - Maksimum 100g protein kuralı ve hedef kalori her gün için garantilidir.
+ * - Mevsime uygun sebze ve meyveler ile Pazar günü rotasyon döngüsü başlıkta belirtilir.
+ */
+function generateWeeklyMatrixHtml() {
+  MASTER_MEALS = getActiveWeeklyMeals();
+  const patternText = MEAL_PATTERN_LABELS[selectedMealPattern] || "2 Ana + 1 Ara";
+  const rot = getWeeklyRotationData();
+  const season = getCurrentSeason();
+
+  // İlk günden sütun başlıklarını öğren
+  const sampleDay = computeDayMeals(0, calculatedMetrics.targetCalories, selectedMealPattern);
+  const mealHeadersHtml = sampleDay.meals.map(m => `<th>${m.title}</th>`).join("");
+
+  // Tablo satırlarını oluştur
+  let rowsHtml = "";
+  for (let d = 0; d < MASTER_MEALS.length; d++) {
+    const dayData = computeDayMeals(d, calculatedMetrics.targetCalories, selectedMealPattern);
+    const dayParts = dayData.dayName.split(" - ");
+    const dayTitle = dayParts[0] || `Gün ${d + 1}`;
+    const daySub = dayParts[1] || "";
+
+    const mealsCellsHtml = dayData.meals.map(meal => {
+      const itemsHtml = meal.items.map(it => {
+        const keTag = isDiabeticMode ? `<span class="ke-chip">${(it.carb / 15).toFixed(1)} KE</span>` : "";
+        return `
+          <li>
+            • <strong>${it.name}</strong>: ${it.portion}
+            <span class="cal-chip">${it.cal} kcal</span>
+            <span class="prot-chip">${it.prot}g P</span>
+            ${keTag}
+          </li>
+        `;
+      }).join("");
+
+      return `
+        <td>
+          <ul class="meal-item-list">
+            ${itemsHtml}
+          </ul>
+          <div class="meal-cell-subtotal">
+            <span>Öğün:</span>
+            <span>${meal.totalCal} kcal | ${meal.totalProt}g P</span>
+          </div>
+        </td>
+      `;
+    }).join("");
+
+    rowsHtml += `
+      <tr>
+        <td class="td-day-info">
+          <strong>${dayTitle}</strong>
+          ${daySub ? `<span class="day-theme-sub">${daySub}</span>` : ""}
+          <span class="season-tag-sub"><i class="fa-solid fa-leaf"></i> ${season.name}</span>
+        </td>
+        ${mealsCellsHtml}
+        <td class="daily-total-cell">
+          <strong>${dayData.totalCal} kcal</strong>
+          <span class="prot-pill-ok"><i class="fa-solid fa-check"></i> ${dayData.totalProt}g P (≤100g)</span>
+          <span class="daily-total-pill">Karb: ${dayData.totalCarb}g</span>
+          ${isDiabeticMode ? `<span class="daily-total-pill" style="color:#be123c; font-weight:700;">${dayData.totalKE} KE</span>` : ""}
+          <span class="daily-total-pill">Yağ: ${dayData.totalFat}g</span>
+        </td>
+      </tr>
+    `;
+  }
+
+  const cycleTitle = rot.activeWeekIndex === 1 ? "2. Hafta Menüsü (Mevsimsel Sebze & Zindelik)" : "1. Hafta Menüsü (Akdeniz & Doğal Form)";
+
+  return `
+    <div class="ps-header">
+      <div>
+        <div class="ps-brand"><i class="fa-solid fa-calendar-days"></i> DiyetWeb - 7 Günlük Haftalık Beslenme Çizelgesi Tablosu</div>
+        <div class="ps-subtitle">Kişiye Özel Hazırlanmış 7 Günlük Program (Tüm Günler ${calculatedMetrics.targetCalories} kcal ve Maksimum 100g Protein Garantili)</div>
+        <div style="margin-top: 4px;">
+          <span class="ps-season-badge"><i class="fa-solid ${season.icon}"></i> Mevsim: ${season.name} (${season.produceNote})</span>
+          <span class="ps-rotation-badge"><i class="fa-solid fa-arrows-rotate"></i> ${cycleTitle} (${rot.dateRangeStr})</span>
+        </div>
+      </div>
+      <div class="ps-meta">
+        <strong>Günlük Kalori Hedefi: ${calculatedMetrics.targetCalories} kcal</strong><br>
+        Protein Güvencesi: <strong>≤ 100g / gün</strong> (Hedef: ${calculatedMetrics.targetProtein}g)<br>
+        Öğün Düzeni: <strong>${patternText}</strong><br>
+        Günlük Minimum Su: <strong>${calculatedMetrics.targetWater} Litre</strong><br>
+        Tarih / Hafta: ${rot.dateRangeStr}
+      </div>
+    </div>
+
+    <div class="ps-weekly-matrix-wrap">
+      <table class="ps-weekly-table">
+        <thead>
+          <tr>
+            <th class="th-day"><i class="fa-solid fa-calendar-day"></i> Gün & Tema</th>
+            ${mealHeadersHtml}
+            <th class="th-total"><i class="fa-solid fa-calculator"></i> Günlük Toplam</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+        <tfoot>
+          <tr style="background: #f1f5f9; font-weight: 700;">
+            <td colspan="${sampleDay.meals.length + 2}" style="padding: 7px 10px; font-size: 10px; color: #0f172a;">
+              <i class="fa-solid fa-circle-check" style="color: #059669;"></i> 
+              <strong>Haftalık Uygulama Notu:</strong> Bu tablo 1 hafta boyunca buzdolabınıza veya masanıza asarak kolayca takip edebilmeniz için hazırlanmıştır. 
+              Sayfamız her <strong>Pazar günü 00:00'da</strong> bir sonraki haftanın taze mevsim menüleriyle otomatik olarak yenilenir. 
+              Sebze ve meyveler <strong>${season.name} mevsimine</strong> uygun taze ürünlerden (balkabağı, brokoli, karnabahar, pırasa, kereviz, nar taneleri, ekşi yeşil elma, ceviz) seçilmiştir.
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="ps-advice-box">
+      <strong><i class="fa-solid fa-droplet"></i> Sağlık & Diyet Kuralı:</strong> Her gün en az ${calculatedMetrics.targetWater} litre su içiniz. Akşam son öğününüzden sonra yatana kadar şekersiz çay, ıhlamur ve sade maden suyu serbesttir. Porsiyon miktarları kalori hedefinize tam eşitlenmiştir.
+    </div>
+  `;
+}
+
+/**
+ * 2. 7 Günlük Tüm Haftayı Tablo Şeklinde A4 Yatay Boyutunda Yazdır
+ */
+function printWeeklyOverview() {
+  const html = generateWeeklyMatrixHtml();
+  printHtmlViaIframe("DiyetWeb - 7 Günlük Haftalık Beslenme Çizelgesi Tablosu", html, true);
+}
+
+/**
+ * 7 Günlük Tablo Matrisini Ekranda Modal İçinde Aç & Göster
+ */
+function openWeeklyMatrixModal() {
+  const modal = document.getElementById("weekly-matrix-modal");
+  const modalBody = document.getElementById("weekly-matrix-modal-body");
+  if (!modal || !modalBody) return;
+
+  const html = generateWeeklyMatrixHtml();
+  modalBody.innerHTML = html;
+  modal.style.display = "flex";
+}
+
+/**
+ * 7 Günlük Tablo Modalını Kapat
+ */
+function closeWeeklyMatrixModal() {
+  const modal = document.getElementById("weekly-matrix-modal");
+  if (modal) modal.style.display = "none";
+}
+
+/**
+ * 3. Yalnızca Alışveriş Listesini Yazdır
+ */
+function printShoppingList() {
+  const html = `
+    <div class="ps-header">
+      <div>
+        <div class="ps-brand"><i class="fa-solid fa-basket-shopping"></i> DiyetWeb - Akıllı Mutfak & Alışveriş Listesi</div>
+        <div class="ps-subtitle">Haftalık Diyet Menüsünü Eksiksiz Uygulamak İçin Temel Besinler</div>
+      </div>
+      <div class="ps-meta">
+        Hedef Kalori: <strong>${calculatedMetrics.targetCalories} kcal</strong><br>
+        Tarih: ${new Date().toLocaleDateString('tr-TR')}
+      </div>
+    </div>
+
+    <div class="ps-shopping-grid">
+      <div class="ps-shop-col">
+        <h3><i class="fa-solid fa-egg"></i> Kahvaltılık & Protein</h3>
+        <ul>
+          <li>Organik / Köy Yumurtası</li>
+          <li>Tam yağlı veya az tuzlu beyaz peynir / lor peyniri</li>
+          <li>Doğal zeytin (az tuzlu sele veya kırma zeytin)</li>
+          <li>Avokado & ceviz içi</li>
+          <li>Ekşi mayalı tam buğday veya çavdar ekmeği</li>
+        </ul>
+      </div>
+      <div class="ps-shop-col">
+        <h3><i class="fa-solid fa-apple-whole"></i> Ara Öğün & Meyve</h3>
+        <ul>
+          <li>Çiğ badem, çiğ fındık veya kabak çekirdeği</li>
+          <li>Mevsim meyvesi (yeşil elma, çilek, nar, yaban mersini)</li>
+          <li>Süzme yoğurt & doğal probiyotik kefir</li>
+          <li>Chia tohumu, toz tarçın</li>
+          <li>Bitki çayları (yeşil çay, adaçayı, rezene)</li>
+        </ul>
+      </div>
+      <div class="ps-shop-col">
+        <h3><i class="fa-solid fa-bowl-rice"></i> Akşam Yemeği & Bakliyat</h3>
+        <ul>
+          <li>Tavuk göğsü veya but / Hindi sote eti</li>
+          <li>Mevsim balığı (Somon, Levrek, Çupra)</li>
+          <li>Kuru baklagiller (Yeşil mercimek, nohut, barbunya)</li>
+          <li>Siyez bulguru, karabuğday (greçka)</li>
+          <li>Taze yeşillikler (roka, marul, maydanoz, semizotu)</li>
+          <li>Soğuk sıkım sızma zeytinyağı</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="ps-advice-box">
+      <strong>Mutfak Hatırlatması:</strong> Paketli, şekerli ve rafine unlu hazır ürünleri alışveriş sepetinize eklemeyiniz. Taze sebzeleri haftalık tüketebileceğiniz miktarda alarak israfı önleyiniz.
+    </div>
+  `;
+
+  printHtmlViaIframe("DiyetWeb - Haftalık Alışveriş Listesi", html);
+}
+
+// Global fonksiyon olarak dışa aktar (HTML onclick için)
+window.printCurrentDayPlan = printCurrentDayPlan;
+window.printWeeklyOverview = printWeeklyOverview;
+window.printShoppingList = printShoppingList;
+window.rotateWeeklyMenuManual = rotateWeeklyMenuManual;
+window.openWeeklyMatrixModal = openWeeklyMatrixModal;
+window.closeWeeklyMatrixModal = closeWeeklyMatrixModal;
+
 // Üstteki Yazdır Butonu
-printBtn.addEventListener("click", () => {
-  window.print();
-});
+if (printBtn) {
+  printBtn.addEventListener("click", printCurrentDayPlan);
+}
 
 // 1. Haftalık / Günlük Yemek Listesi Altındaki Yazdır Butonu
 const printPlanBottomBtn = document.getElementById("print-plan-bottom-btn");
 if (printPlanBottomBtn) {
-  printPlanBottomBtn.addEventListener("click", () => {
-    switchTab("tab-plan");
-    document.body.classList.add("print-only-plan");
-    window.print();
-    setTimeout(() => {
-      document.body.classList.remove("print-only-plan");
-    }, 1000);
-  });
+  printPlanBottomBtn.addEventListener("click", printCurrentDayPlan);
 }
 
 // 2. Alışveriş Listesi Altındaki Yazdır Butonu
 const printShoppingBottomBtn = document.getElementById("print-shopping-bottom-btn");
 if (printShoppingBottomBtn) {
-  printShoppingBottomBtn.addEventListener("click", () => {
-    switchTab("tab-shopping");
-    document.body.classList.add("print-only-shopping");
-    window.print();
-    setTimeout(() => {
-      document.body.classList.remove("print-only-shopping");
-    }, 1000);
-  });
+  printShoppingBottomBtn.addEventListener("click", printShoppingList);
 }
 
 // 3. 7 Günlük Tüm Haftayı Yazdır Butonu
 const printWeeklyOverviewBtn = document.getElementById("print-weekly-overview-btn");
 if (printWeeklyOverviewBtn) {
-  printWeeklyOverviewBtn.addEventListener("click", () => {
-    switchTab("tab-plan");
-    // Tüm günlerin başlıklarını ve öğünlerini geçici olarak yazdırılabilir hale getir
-    const originalDay = currentDayIndex;
-    let confirmPrint = confirm("7 günlük tüm menülerin tamamını yazdırmak istiyor musunuz?");
-    if (confirmPrint) {
-      window.print();
-    }
-  });
+  printWeeklyOverviewBtn.addEventListener("click", printWeeklyOverview);
+}
+
+// 4. Haftalık Pazar Menüsü Rotasyon Butonu
+const rotateWeekBtn = document.getElementById("rotate-week-btn");
+if (rotateWeekBtn) {
+  rotateWeekBtn.addEventListener("click", rotateWeeklyMenuManual);
 }
 
 // ==========================================
@@ -1491,6 +2657,9 @@ if (applySwapToLogBtn) {
 
 // Sayfa Yüklendiğinde
 window.addEventListener("DOMContentLoaded", () => {
+  MASTER_MEALS = getActiveWeeklyMeals();
+  updateWeeklyRotationUI();
+  updateDaySelectorOptions();
   calculateNutrition();
   renderQuickDiningTemplates();
   renderTrackerBudget();
