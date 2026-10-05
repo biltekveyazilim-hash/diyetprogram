@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DiyetWeb - Kişiselleştirilmiş Diyet, Kalori & Karbonhidrat Takipçisi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons for modern UI -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="main-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-leaf"></i>
+        </div>
+        <div>
+          <h1>Diyet<span>Web</span></h1>
+          <p class="subtitle">Esnek Öğün Seçimi | Dışarıda Yemek & Kalori Takibi | Diyabet Karbonhidrat Sayımı (Maks. 100g Protein)</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge-accent"><i class="fa-solid fa-shield-halved"></i> Maks. 100g Protein Korumalı</span>
+        <span class="badge badge-diabetic" id="header-diabetic-badge" style="display:none;"><i class="fa-solid fa-droplet"></i> Diyabet Modu Aktif (KE Takibi)</span>
+        <span class="badge badge-outline" id="active-meal-badge"><i class="fa-solid fa-utensils"></i> 2 Ana Öğün + 1 Ara</span>
+        <button type="button" class="badge badge-outline" id="db-status-badge" title="Supabase Veritabanı Ayarları" style="cursor: pointer;">
+          <i class="fa-solid fa-cloud"></i> Veritabanı
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs-bar">
+      <button class="nav-tab active" data-tab="tab-plan">
+        <i class="fa-solid fa-calendar-check"></i> Diyet Planım
+      </button>
+      <button class="nav-tab" data-tab="tab-tracker">
+        <i class="fa-solid fa-utensils"></i> Yediklerim & Dışarıda Yemek Takipçisi
+        <span class="tab-badge" id="logged-count-badge">0</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-diabetes">
+        <i class="fa-solid fa-heart-pulse"></i> Diyabet & Karbonhidrat Rehberi
+      </button>
+      <button class="nav-tab" data-tab="tab-shopping">
+        <i class="fa-solid fa-basket-shopping"></i> Alışveriş Listesi
+      </button>
+    </nav>
+
+    <!-- Main Grid Layout -->
+    <main class="dashboard-grid">
+      <!-- Left Column: Form & Inputs -->
+      <aside class="left-sidebar-col">
+        <section class="card input-card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-sliders"></i> Profil & Beslenme Ayarları</h2>
+          <p class="card-desc">Öğün sayısı, kalori ve sağlık tercihlerinizi özelleştirin.</p>
+        </div>
+
+        <form id="diet-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="gender"><i class="fa-solid fa-venus-mars"></i> Cinsiyet</label>
+              <div class="gender-toggle">
+                <label class="toggle-option">
+                  <input type="radio" name="gender" value="female" checked>
+                  <span class="toggle-btn"><i class="fa-solid fa-person-dress"></i> Kadın</span>
+                </label>
+                <label class="toggle-option">
+                  <input type="radio" name="gender" value="male">
+                  <span class="toggle-btn"><i class="fa-solid fa-person"></i> Erkek</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="age"><i class="fa-solid fa-cake-candles"></i> Yaş</label>
+              <div class="input-with-suffix">
+                <input type="number" id="age" min="15" max="100" value="28" required>
+                <span class="suffix">yaş</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="height"><i class="fa-solid fa-ruler-vertical"></i> Boy</label>
+              <div class="input-with-suffix">
+                <input type="number" id="height" min="120" max="230" value="168" placeholder="Örn: 170" required>
+                <span class="suffix">cm</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="weight"><i class="fa-solid fa-weight-scale"></i> Kilo</label>
+              <div class="input-with-suffix">
+                <input type="number" id="weight" step="0.1" min="35" max="250" value="68" placeholder="Örn: 65" required>
+                <span class="suffix">kg</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- YENİ: Öğün Sayısı Seçimi -->
+          <div class="form-group">
+            <label for="meal-pattern"><i class="fa-solid fa-clock-rotate-left"></i> Öğün Sayısı & Düzeni</label>
+            <select id="meal-pattern" class="custom-select highlight-select">
+              <option value="2_meals">2 Öğün (Aralıklı Oruç / Sabah + Akşam)</option>
+              <option value="2_meals_1_snack" selected>2 Ana Öğün + 1 Ara Öğün (Sabah + İkindi + Akşam)</option>
+              <option value="3_meals">3 Ana Öğün (Kahvaltı + Öğle + Akşam)</option>
+              <option value="3_meals_1_snack">3 Ana Öğün + 1 Ara Öğün (Kahvaltı + Öğle + İkindi + Akşam)</option>
+              <option value="3_meals_2_snacks">3 Ana Öğün + 2 Ara Öğün (Kuşluk + İkindi Ara Öğünlü)</option>
+            </select>
+          </div>
+
+          <!-- YENİ: Diyabet / Karbonhidrat Sayımı Modu -->
+          <div class="form-group diabetic-toggle-group">
+            <label class="custom-switch-label">
+              <input type="checkbox" id="diabetic-mode">
+              <span class="custom-switch-slider"></span>
+              <span class="switch-text">
+                <strong><i class="fa-solid fa-droplet text-red"></i> Diyabet / İnsülin Direnci Modu</strong>
+                <small>Karbonhidrat sayımı (1 KE = 15g CHO) ve glisemik yük takibini açar.</small>
+              </span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label for="activity"><i class="fa-solid fa-person-running"></i> Günlük Hareket Seviyesi</label>
+            <select id="activity" class="custom-select">
+              <option value="1.2">Masa Başı / Hareketsiz Yaşam (Sedanter)</option>
+              <option value="1.375" selected>Hafif Hareketli (Haftada 1-3 gün yürüyüş / egzersiz)</option>
+              <option value="1.55">Orta Hareketli (Haftada 3-5 gün spor / tempolu)</option>
+              <option value="1.725">Çok Hareketli (Haftada 6-7 gün ağır spor / fiziksel iş)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="goal"><i class="fa-solid fa-bullseye"></i> Hedefiniz</label>
+            <div class="goal-grid">
+              <label class="goal-option">
+                <input type="radio" name="goal" value="lose_fast">
+                <span class="goal-card">
+                  <span class="goal-title">Hızlı Kilo Verme</span>
+                  <span class="goal-sub">-600 kcal</span>
+                </span>
+              </label>
+              <label class="goal-option">
+                <input type="radio" name="goal" value="lose" checked>
+                <span class="goal-card">
+                  <span class="goal-title">Sağlıklı Kilo Verme</span>
+                  <span class="goal-sub">-400 kcal</span>
+                </span>
+              </label>
+              <label class="goal-option">
+                <input type="radio" name="goal" value="maintain">
+                <span class="goal-card">
+                  <span class="goal-title">Formu Korumak</span>
+                  <span class="goal-sub">Dengeli</span>
+                </span>
+              </label>
+              <label class="goal-option">
+                <input type="radio" name="goal" value="gain">
+                <span class="goal-card">
+                  <span class="goal-title">Kilo Almak</span>
+                  <span class="goal-sub">+350 kcal</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Protein Guard Alert -->
+          <div class="alert-box alert-success">
+            <i class="fa-solid fa-check-circle"></i>
+            <div>
+              <strong>Maksimum 100g Protein Kuralı Aktif</strong>
+              <p>Kaç öğün seçilirse seçilsin, günlük toplam protein kesinlikle 100 gramı aşmayacak biçimde dengelenir.</p>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="calc-btn">
+            <i class="fa-solid fa-calculator"></i> Kalori Hesapla & Menüyü Güncelle
+          </button>
+        </form>
+
+        <!-- Quick Summary Box -->
+        <div class="quick-tips-box">
+          <h4><i class="fa-solid fa-circle-question"></i> Esnek Öğün Rehberi</h4>
+          <ul>
+            <li><strong>2 Öğün (16:8):</strong> Sabah ve akşam; yağ yakımı ve sindirim dinlenmesi için idealdir.</li>
+            <li><strong>2 Öğün + 1 Ara:</strong> İkindi atıştırmalığı ile akşam açlığını ve tatlı krizini önler.</li>
+            <li><strong>3 Öğün / Çok Öğün:</strong> Kan şekeri dalgalananlar veya diyabetik bireyler için öğün başı karbonhidrat yükünü böler.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- YENİ: Sol Menü Besin Değişim & Kalori Eşitleme Aracı -->
+      <section class="card exchange-card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-arrows-rotate"></i> Besin Değişim & Kalori Eşitleyici</h2>
+          <p class="card-desc">Menü dışından bir şey yemek istediğinizde aynı kaloriyi ve makroyu denk getirecek eşdeğer porsiyonu hesaplayın.</p>
+        </div>
+
+        <div class="exchange-form">
+          <!-- 1. Referans Besin Seçimi -->
+          <div class="form-group">
+            <label for="swap-source-select"><i class="fa-solid fa-utensils"></i> Değiştirilecek / Menüdeki Besin</label>
+            <select id="swap-source-select" class="custom-select">
+              <option value="custom">-- Serbest Besin / Değer Yaz --</option>
+              <optgroup label="Et, Tavuk & Balık Grubu">
+                <option value="tavuk_150" data-name="Izgara Tavuk Göğsü (150g)" data-cal="245" data-prot="44" data-carb="0" data-fat="5.2" selected>Izgara Tavuk Göğsü (150g)</option>
+                <option value="kofte_120" data-name="Izgara Ev Köftesi (4 adet / 120g)" data-cal="270" data-prot="32" data-carb="3" data-fat="14.5">Izgara Ev Köftesi (4 adet / 120g)</option>
+                <option value="somon_160" data-name="Fırında Somon / Levrek (160g)" data-cal="290" data-prot="36" data-carb="0" data-fat="15.5">Fırında Somon / Balık (160g)</option>
+                <option value="hindi_140" data-name="Hindi Sote (140g)" data-cal="215" data-prot="38" data-carb="2.5" data-fat="4.8">Hindi Sote (140g)</option>
+                <option value="ton_80" data-name="Ton Balığı (küçük kutu / 80g)" data-cal="110" data-prot="22" data-carb="0" data-fat="2.5">Ton Balığı (küçük kutu / 80g)</option>
+              </optgroup>
+              <optgroup label="Kahvaltılık Grubu">
+                <option value="yumurta_2" data-name="Haşlanmış Yumurta (2 adet)" data-cal="155" data-prot="13" data-carb="1.1" data-fat="10.6">Haşlanmış Yumurta (2 adet)</option>
+                <option value="peynir_40" data-name="Beyaz Peynir (40g / 2 parmak dilim)" data-cal="110" data-prot="8" data-carb="0.8" data-fat="8.5">Beyaz Peynir (40g / 2 dilim)</option>
+                <option value="lor_50" data-name="Lor Peyniri (3 kaşık / 50g)" data-cal="75" data-prot="9.5" data-carb="1.8" data-fat="3.2">Lor Peyniri (3 kaşık / 50g)</option>
+                <option value="kasar_30" data-name="Kaşar Peyniri (30g)" data-cal="120" data-prot="8" data-carb="0.5" data-fat="9.5">Kaşar Peyniri (30g)</option>
+              </optgroup>
+              <optgroup label="Ekmek, Tahıl & Baklagil">
+                <option value="ekmek_2" data-name="Tam Buğday Ekmeği (2 dilim / 60g)" data-cal="140" data-prot="5.5" data-carb="28" data-fat="1.2">Tam Buğday Ekmeği (2 dilim / 60g)</option>
+                <option value="bulgur_100" data-name="Bulgur Pilavı (4 kaşık / 100g)" data-cal="145" data-prot="4.2" data-carb="30" data-fat="1.1">Bulgur Pilavı (4 kaşık / 100g)</option>
+                <option value="corba_1" data-name="Mercimek Çorbası (1 kase / 200ml)" data-cal="135" data-prot="7.2" data-carb="21" data-fat="2.8">Mercimek Çorbası (1 kase / 200ml)</option>
+                <option value="nohut_150" data-name="Nohut Yemeği (6 kaşık / 150g)" data-cal="200" data-prot="11" data-carb="30" data-fat="4.5">Nohut Yemeği (6 kaşık / 150g)</option>
+              </optgroup>
+              <optgroup label="Ara Öğün & Kuruyemiş">
+                <option value="elma_1" data-name="1 Orta Boy Elma (150g)" data-cal="80" data-prot="0.5" data-carb="20" data-fat="0.3">1 Orta Boy Elma (150g)</option>
+                <option value="badem_15" data-name="Çiğ Badem (10-12 adet / 15g)" data-cal="90" data-prot="3.2" data-carb="3.2" data-fat="7.8">Çiğ Badem (10-12 adet / 15g)</option>
+                <option value="ceviz_15" data-name="Ceviz İçi (2 tam ceviz / 15g)" data-cal="98" data-prot="2.2" data-carb="2.1" data-fat="9.8">Ceviz İçi (2 tam ceviz / 15g)</option>
+                <option value="yogurt_150" data-name="Doğal Yoğurt (4 kaşık / 150g)" data-cal="95" data-prot="5.5" data-carb="7.2" data-fat="4.8">Yoğurt (4 kaşık / 150g)</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <!-- Yemeğin Besin Değerleri (Otomatik dolar veya elle yazılabilir) -->
+          <div class="swap-values-grid">
+            <div class="form-group span-2">
+              <label for="swap-source-name">Yemek Adı</label>
+              <input type="text" id="swap-source-name" value="Izgara Tavuk Göğsü (150g)">
+            </div>
+            <div class="form-group">
+              <label for="swap-source-cal">Kalori (kcal)</label>
+              <input type="number" id="swap-source-cal" value="245" min="0">
+            </div>
+            <div class="form-group">
+              <label for="swap-source-prot">Protein (g)</label>
+              <input type="number" id="swap-source-prot" value="44" min="0" step="0.5">
+            </div>
+            <div class="form-group">
+              <label for="swap-source-carb">Karbonhidrat (g)</label>
+              <input type="number" id="swap-source-carb" value="0" min="0" step="0.5">
+            </div>
+            <div class="form-group">
+              <label for="swap-source-fat">Yağ (g)</label>
+              <input type="number" id="swap-source-fat" value="5.2" min="0" step="0.5">
+            </div>
+          </div>
+
+          <!-- 2. Yerine Ne Yemek İstiyorsunuz? (Eşitleme Seçimi) -->
+          <div class="form-group mt-2">
+            <label for="swap-target-select"><i class="fa-solid fa-arrow-right-arrow-left"></i> Yerine Yemek İstediğim Besin</label>
+            <select id="swap-target-select" class="custom-select highlight-select">
+              <option value="somon">Somon / Yağlı Balık</option>
+              <option value="levrek">Levrek / Çupra (Beyaz Balık)</option>
+              <option value="kofte">Izgara Köfte</option>
+              <option value="hindi">Hindi Eti</option>
+              <option value="yumurta">Haşlanmış Yumurta</option>
+              <option value="nohut">Nohut / Kuru Baklagil (Pişmiş)</option>
+              <option value="lor">Lor Peyniri</option>
+              <option value="kasar">Kaşar / Sert Peynir</option>
+              <option value="ekmek">Tam Buğday Ekmeği</option>
+              <option value="bulgur">Bulgur / Karabuğday Pilavı</option>
+              <option value="patates">Fırın Patates</option>
+              <option value="ceviz">Ceviz / Badem</option>
+              <option value="avokado">Avokado</option>
+              <option value="yogurt">Yoğurt / Kefir</option>
+              <option value="muz">Muz / Taze Meyve</option>
+            </select>
+          </div>
+
+          <!-- Anlık Hesaplanan Eşit Kalori Sonuç Kutusu -->
+          <div class="swap-result-box" id="swap-result-box">
+            <div class="swap-result-header">
+              <span class="sr-badge"><i class="fa-solid fa-scale-balanced"></i> Eşit Kalori Porsiyonu</span>
+              <span class="sr-calories" id="sr-target-cal">245 kcal</span>
+            </div>
+            <div class="swap-portion-highlight" id="swap-portion-text">
+              Tüketmeniz Gereken: <strong>136g Izgara Somon</strong>
+            </div>
+            <div class="swap-macro-breakdown">
+              <span class="sm-tag sm-prot" id="swap-result-prot"><i class="fa-solid fa-drumstick-bite"></i> 30.6g Protein</span>
+              <span class="sm-tag sm-carb" id="swap-result-carb"><i class="fa-solid fa-wheat-awn"></i> 0g Karb (0 KE)</span>
+              <span class="sm-tag sm-fat" id="swap-result-fat"><i class="fa-solid fa-droplet"></i> 13.6g Yağ</span>
+            </div>
+            <div class="swap-alert" id="swap-prot-warning">
+              <i class="fa-solid fa-circle-check text-green"></i> <span>Maksimum 100g protein kuralına uygundur.</span>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-secondary btn-block mt-3" id="apply-swap-to-log-btn">
+            <i class="fa-solid fa-plus-circle"></i> Bu Değişimi Günlüğüme Ekle
+          </button>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Right Column: Results, Diet Plan & Tracking Tools -->
+    <section class="results-column" id="results-area">
+        
+        <!-- Metrics Overview (All Tabs) -->
+        <div class="card metrics-card">
+          <div class="metrics-grid">
+            <div class="metric-item">
+              <span class="metric-label">Vücut Kitle İndeksi (VKİ)</span>
+              <div class="metric-value-wrap">
+                <span class="metric-number" id="bmi-val">24.1</span>
+                <span class="metric-tag" id="bmi-category">Normal</span>
+              </div>
+              <span class="metric-sub" id="ideal-weight-range">İdeal Kilo: 54 - 70 kg</span>
+            </div>
+
+            <div class="metric-item highlight-metric">
+              <span class="metric-label">Günlük Hedef Kalori</span>
+              <div class="metric-value-wrap">
+                <span class="metric-number big-number" id="target-calories">1,650</span>
+                <span class="metric-unit">kcal / gün</span>
+              </div>
+              <span class="metric-sub" id="bmr-tdee-info">BMR: 1,420 kcal | Harcama: 1,950 kcal</span>
+            </div>
+
+            <div class="metric-item">
+              <span class="metric-label">Önerilen Su Tüketimi</span>
+              <div class="metric-value-wrap">
+                <span class="metric-number" id="water-intake">2.4</span>
+                <span class="metric-unit">Litre / gün</span>
+              </div>
+              <span class="metric-sub">Yaklaşık 10-12 su bardağı</span>
+            </div>
+          </div>
+
+          <!-- Macro Targets Bar -->
+          <div class="macro-section">
+            <div class="macro-header">
+              <h3><i class="fa-solid fa-chart-pie"></i> Hedef Makro Dağılımı</h3>
+              <div class="macro-header-tags">
+                <span class="protein-safe-tag"><i class="fa-solid fa-lock"></i> Protein ≤ 100g Limiti</span>
+                <span class="ke-safe-tag" id="diabetic-ke-summary" style="display:none;"><i class="fa-solid fa-droplet"></i> Toplam: ~12 KE (Karbonhidrat Birimi)</span>
+              </div>
+            </div>
+            
+            <div class="macro-bars">
+              <div class="macro-bar-card protein-card">
+                <div class="macro-bar-top">
+                  <span><i class="fa-solid fa-drumstick-bite"></i> Protein</span>
+                  <span id="protein-macro-target"><strong>85g</strong> (%21)</span>
+                </div>
+                <div class="progress"><div class="progress-bar bar-protein" id="bar-protein" style="width: 85%;"></div></div>
+                <span class="macro-limit-note">Maks. 100g sınırının altında</span>
+              </div>
+
+              <div class="macro-bar-card carbs-card">
+                <div class="macro-bar-top">
+                  <span><i class="fa-solid fa-wheat-awn"></i> Karbonhidrat</span>
+                  <span id="carbs-macro-target"><strong>180g</strong> (%44)</span>
+                </div>
+                <div class="progress"><div class="progress-bar bar-carbs" id="bar-carbs" style="width: 50%;"></div></div>
+                <span class="macro-limit-note" id="carbs-ke-note">Kompleks & Lifli karbonhidratlar</span>
+              </div>
+
+              <div class="macro-bar-card fat-card">
+                <div class="macro-bar-top">
+                  <span><i class="fa-solid fa-bottle-droplet"></i> Sağlıklı Yağ</span>
+                  <span id="fat-macro-target"><strong>62g</strong> (%35)</span>
+                </div>
+                <div class="progress"><div class="progress-bar bar-fat" id="bar-fat" style="width: 40%;"></div></div>
+                <span class="macro-limit-note">Zeytinyağı, avokado, ceviz</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= TAB 1: DIET PLAN ================= -->
+        <div class="tab-pane active" id="tab-plan">
+          <div class="card meal-plan-card">
+            <div class="meal-plan-header">
+              <div>
+                <h2><i class="fa-solid fa-clipboard-list"></i> Günlük Diyet Menünüz</h2>
+                <p class="card-desc" id="plan-desc-text">Seçilen öğün sayısına ve 100g protein kuralına tam uyumlu plan.</p>
+              </div>
+              <div class="plan-actions">
+                <button class="btn btn-outline btn-sm" id="prev-day-btn" title="Önceki Gün"><i class="fa-solid fa-chevron-left"></i></button>
+                <select id="day-selector" class="custom-select-sm">
+                  <option value="0">1. Gün - Klasik Akdeniz Dengesi</option>
+                  <option value="1">2. Gün - Hafif & Tok Tutan Lifli Menü</option>
+                  <option value="2">3. Gün - Balık & Omega-3 Günü</option>
+                  <option value="3">4. Gün - Bitkisel Protein & Zeytinyağlı</option>
+                  <option value="4">5. Gün - Enerjik & Dinamik Gün</option>
+                  <option value="5">6. Gün - Pratik & Hafta Sonu Seçenekleri</option>
+                  <option value="6">7. Gün - Arındırıcı & Hafif Pazar</option>
+                </select>
+                <button class="btn btn-outline btn-sm" id="next-day-btn" title="Sonraki Gün"><i class="fa-solid fa-chevron-right"></i></button>
+                <button class="btn btn-secondary btn-sm" id="randomize-btn" title="Yeni kombinasyon oluştur">
+                  <i class="fa-solid fa-shuffle"></i> Yenile
+                </button>
+                <button class="btn btn-outline btn-sm" id="print-btn" title="Yazdır veya PDF Kaydet">
+                  <i class="fa-solid fa-print"></i> Yazdır
+                </button>
+              </div>
+            </div>
+
+            <!-- Diyabet Uyarı Bandı (Eğer Diyabet Modu Açık İse Görünür) -->
+            <div class="diabetic-info-banner" id="diabetic-plan-banner" style="display:none;">
+              <i class="fa-solid fa-stethoscope"></i>
+              <div>
+                <strong>Diyabet Karbonhidrat Sayımı Aktif:</strong> Her öğünün yanında kaç Karbonhidrat Eşdeğeri (KE) olduğu belirtilmiştir (1 KE = 15g CHO). Ana öğünlerde 3-4 KE, ara öğünlerde 1-2 KE hedeflenmelidir.
+              </div>
+            </div>
+
+            <!-- Meals List -->
+            <div class="meals-list" id="meals-container">
+              <!-- Dynamically populated via app.js -->
+            </div>
+
+            <!-- Total Daily Summary Box -->
+            <div class="total-summary-card">
+              <div class="total-label">
+                <i class="fa-solid fa-calculator"></i>
+                <div>
+                  <strong>Menü Toplam Değerleri</strong>
+                  <p>Maksimum 100g protein sınırına ve hedeflenen kaloriye göredir.</p>
+                </div>
+              </div>
+              <div class="total-stats">
+                <div class="stat-pill">
+                  <span class="stat-title">Toplam Kalori</span>
+                  <span class="stat-val" id="total-meal-calories">1,620 kcal</span>
+                </div>
+                <div class="stat-pill highlight-pill">
+                  <span class="stat-title">Toplam Protein</span>
+                  <span class="stat-val" id="total-meal-protein">84g</span>
+                  <span class="stat-badge"><i class="fa-solid fa-check"></i> &le; 100g</span>
+                </div>
+                <div class="stat-pill">
+                  <span class="stat-title">Karbonhidrat</span>
+                  <span class="stat-val" id="total-meal-carbs">175g</span>
+                  <span class="stat-sub-ke" id="total-meal-ke" style="display:none;">11.6 KE</span>
+                </div>
+                <div class="stat-pill">
+                  <span class="stat-title">Yağ</span>
+                  <span class="stat-val" id="total-meal-fat">60g</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Haftalık / Günlük Yemek Listesi Yazdırma Alanı -->
+            <div class="print-bar-footer">
+              <button class="btn btn-primary" id="print-plan-bottom-btn" type="button">
+                <i class="fa-solid fa-print"></i> Bu Yemek Listesini Yazdır / PDF İndir
+              </button>
+              <button class="btn btn-outline" id="print-weekly-overview-btn" type="button">
+                <i class="fa-solid fa-calendar-days"></i> 7 Günlük Tüm Haftayı Yazdır (A4)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= TAB 2: YEDİKLERİM & DIŞARIDA YEMEK TAKİPÇİSİ ================= -->
+        <div class="tab-pane" id="tab-tracker">
+          <div class="card tracker-card">
+            <div class="card-header">
+              <div class="tracker-head-title">
+                <h2><i class="fa-solid fa-utensils"></i> Yediklerim & Dışarıda Yemek Takipçisi</h2>
+                <p class="card-desc">Hafta sonu dışarıda yediğiniz yemekleri, restorandaki menüleri veya evdeki öğünlerinizi kaydedin; kalori, protein ve karbonhidrat (KE) dengenizi anında görün.</p>
+              </div>
+              <button class="btn btn-outline btn-sm btn-danger-soft" id="clear-log-btn" title="Tüm kayıtları sil">
+                <i class="fa-solid fa-trash-can"></i> Günlüğü Sıfırla
+              </button>
+            </div>
+
+            <!-- Tracker Budget & Live Progress Bar -->
+            <div class="tracker-budget-box">
+              <div class="budget-top">
+                <div class="budget-title">
+                  <span>Bugün Tüketilen: <strong id="logged-cals-total">0</strong> / <span id="budget-cals-target">1,650</span> kcal</span>
+                  <span class="budget-remaining" id="budget-remaining-text">Kalan: 1,650 kcal</span>
+                </div>
+                <div class="progress progress-large">
+                  <div class="progress-bar bar-calories" id="logged-calories-bar" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <div class="budget-sub-metrics">
+                <div class="budget-pill" id="logged-protein-pill">
+                  <span class="bp-title"><i class="fa-solid fa-drumstick-bite"></i> Tüketilen Protein</span>
+                  <span class="bp-val" id="logged-protein-total">0g</span>
+                  <span class="bp-badge" id="protein-warning-badge"><i class="fa-solid fa-shield"></i> Maks. 100g</span>
+                </div>
+                <div class="budget-pill">
+                  <span class="bp-title"><i class="fa-solid fa-wheat-awn"></i> Tüketilen Karbonhidrat</span>
+                  <span class="bp-val" id="logged-carbs-total">0g</span>
+                  <span class="bp-badge bp-badge-ke" id="logged-ke-badge">0.0 KE (CHO)</span>
+                </div>
+                <div class="budget-pill">
+                  <span class="bp-title"><i class="fa-solid fa-bottle-droplet"></i> Tüketilen Yağ</span>
+                  <span class="bp-val" id="logged-fat-total">0g</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Dining-Out Templates (Dışarıda Yemek Hızlı Seçim Butonları) -->
+            <div class="quick-templates-section">
+              <h4><i class="fa-solid fa-bolt text-yellow"></i> Popüler Dışarıda Yemek Menüleri (Hızlı Ekle)</h4>
+              <p class="quick-sub">Dışarıda veya restoranda en çok tercih edilen menülerden birini tek tıkla günlüğünüze ekleyin:</p>
+              <div class="quick-food-tags" id="quick-food-tags">
+                <!-- Injected via app.js -->
+              </div>
+            </div>
+
+            <!-- Manual Custom Food Entry Form -->
+            <div class="custom-food-form-wrap">
+              <h4><i class="fa-solid fa-pen-to-square"></i> Kendi Yediğin Yemeği / Menüyü Yaz</h4>
+              <form id="custom-food-form">
+                <div class="custom-form-grid">
+                  <div class="form-group span-2">
+                    <label for="food-name-input">Yemek / Menü Adı</label>
+                    <input type="text" id="food-name-input" placeholder="Örn: Hafta sonu hamburgeri, Tavuklu salata, Dışarıda döner..." required>
+                  </div>
+                  <div class="form-group">
+                    <label for="food-meal-type">Öğün</label>
+                    <select id="food-meal-type" class="custom-select">
+                      <option value="Kahvaltı">Kahvaltı</option>
+                      <option value="Öğle Yemeği">Öğle Yemeği</option>
+                      <option value="Ara Öğün">Ara Öğün</option>
+                      <option value="Akşam Yemeği">Akşam Yemeği</option>
+                      <option value="Dışarıda Yemek / Kaçamak" selected>Dışarıda Yemek / Kaçamak</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="food-cal-input">Kalori (kcal)</label>
+                    <input type="number" id="food-cal-input" placeholder="Örn: 550" min="0" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="food-carb-input">Karbonhidrat (g)</label>
+                    <input type="number" id="food-carb-input" placeholder="Örn: 45" min="0" step="0.5" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="food-prot-input">Protein (g)</label>
+                    <input type="number" id="food-prot-input" placeholder="Örn: 30" min="0" step="0.5" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="food-fat-input">Yağ (g)</label>
+                    <input type="number" id="food-fat-input" placeholder="Örn: 20" min="0" step="0.5">
+                  </div>
+                </div>
+                <div class="custom-form-actions">
+                  <button type="submit" class="btn btn-primary" id="add-food-btn">
+                    <i class="fa-solid fa-plus-circle"></i> Yemeği Günlüğüme Ekle
+                  </button>
+                  <span class="ke-preview-note" id="ke-preview-note">Karbonhidrat Eşdeğeri: <strong>0 KE</strong> (15g = 1 KE)</span>
+                </div>
+              </form>
+            </div>
+
+            <!-- Logged Foods List Table -->
+            <div class="logged-foods-section">
+              <h4><i class="fa-solid fa-list-check"></i> Bugün Eklenen Yemekler</h4>
+              <div class="table-responsive">
+                <table class="logged-table" id="logged-table">
+                  <thead>
+                    <tr>
+                      <th>Öğün / Kategori</th>
+                      <th>Yemek / Menü</th>
+                      <th>Kalori</th>
+                      <th>Karb (KE)</th>
+                      <th>Protein</th>
+                      <th>Yağ</th>
+                      <th>İşlem</th>
+                    </tr>
+                  </thead>
+                  <tbody id="logged-items-tbody">
+                    <!-- Populated via JS -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="empty-log-state" id="empty-log-state">
+                <i class="fa-solid fa-utensils"></i>
+                <p>Henüz bir yemek eklemediniz. Yukarıdaki hazır menülerden seçebilir veya yediğiniz yemeğin kalorisini yazıp ekleyebilirsiniz.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= TAB 3: DİYABET & KARBONHİDRAT REHBERİ ================= -->
+        <div class="tab-pane" id="tab-diabetes">
+          <div class="card diabetes-guide-card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-droplet text-red"></i> Diyabet & Karbonhidrat Sayımı (KE) Rehberi</h2>
+              <p class="card-desc">Tip-1, Tip-2 diyabet ve insülin direncinde kan şekerini dalgalandırmayan bilimsel beslenme esasları.</p>
+            </div>
+
+            <div class="ke-explainer-banner">
+              <div class="ke-box-number">
+                <span>1 KE</span>
+                <small>= 15g Karbonhidrat</small>
+              </div>
+              <div class="ke-box-text">
+                <h3>Karbonhidrat Eşdeğeri (KE / CHO) Nedir?</h3>
+                <p>Diyabet yönetiminde kan şekerini doğrudan yükselten temel besin öğesi karbonhidrattır. Tıbbi beslenme tedavisinde <strong>her 15 gram karbonhidrat 1 Karbonhidrat Eşdeğeri (1 KE)</strong> olarak adlandırılır. Günlük menünüzü planlarken toplam karbonhidratı öğünlere eşit bölmek şeker krizlerini ve hipoglisemiyi önler.</p>
+              </div>
+            </div>
+
+            <div class="diabetic-rules-grid">
+              <div class="rule-box">
+                <div class="rule-icon"><i class="fa-solid fa-chart-line"></i></div>
+                <h4>Öğün Başına İdeal KE Sınırları</h4>
+                <ul>
+                  <li><strong>Ana Öğünler (Kahvaltı, Öğle, Akşam):</strong> 3 – 4 KE (45g – 60g Karbonhidrat)</li>
+                  <li><strong>Ara Öğünler:</strong> 1 – 2 KE (15g – 30g Karbonhidrat)</li>
+                  <li><strong>Tek Öğünde Aşırı Karbonhidrat:</strong> 4 KE'nin üzerine çıkmak ani insülin salgısına ve reaktif hipoglisemiye yol açabilir.</li>
+                </ul>
+              </div>
+
+              <div class="rule-box">
+                <div class="rule-icon"><i class="fa-solid fa-shield-virus"></i></div>
+                <h4>Glisemik İndeks & Lif Kalkanı</h4>
+                <ul>
+                  <li><strong>Karbonhidratı Yalnız Bırakmayın:</strong> Karbonhidratın yanına protein (yumurta, peynir, yoğurt) veya sağlıklı yağ (zeytin, ceviz) eklendiğinde emilim hızı yavaşlar.</li>
+                  <li><strong>Beyaz Un ve Şekerden Kaçının:</strong> Pirinç ve beyaz ekmek yerine siyez bulguru, karabuğday, yulaf ve baklagil tercih edin.</li>
+                  <li><strong>Salata ve Çiğ Sebze:</strong> Yemeğe bol yeşillikli salata ile başlamak glikoz emilimini %30'a kadar yavaşlatır.</li>
+                </ul>
+              </div>
+
+              <div class="rule-box">
+                <div class="rule-icon"><i class="fa-solid fa-apple-whole"></i></div>
+                <h4>Meyve Tüketim Kuralları</h4>
+                <ul>
+                  <li><strong>Meyve Porsiyonu:</strong> 1 porsiyon taze meyve (1 küçük elma veya 100g çilek) yaklaşık <strong>1 KE (15g CHO)</strong> kabul edilir.</li>
+                  <li><strong>Tek Başına Meyve Yemeyin:</strong> Meyvenin yanına 2-3 ceviz veya bir kase yoğurt ekleyerek kan şekeri fırlamasını engelleyin.</li>
+                  <li><strong>Meyve Suyundan Uzak Durun:</strong> Lifi ayrılmış meyve suları doğrudan karaciğer ve kan şekerini vurur.</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- KE Table for Daily Foods -->
+            <div class="ke-food-table-wrap">
+              <h4><i class="fa-solid fa-table-list"></i> Pratik Besinlerin 1 KE (15g Karbonhidrat) Değerleri</h4>
+              <table class="food-items-table ke-reference-table">
+                <thead>
+                  <tr>
+                    <th>Besin Grubu</th>
+                    <th>1 KE (15g Karbonhidrat) Veren Miktar</th>
+                    <th>Tavsiye Notu</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Tam Buğday / Ekşi Mayalı Ekmek</strong></td>
+                    <td>1 ince dilim (25-30g)</td>
+                    <td>Beyaz ekmek yerine mutlaka tam tahıl tercih edin.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Bulgur / Karabuğday Pilavı</strong></td>
+                    <td>3 tepeleme yemek kaşığı (60-70g pişmiş)</td>
+                    <td>Yüksek lifli, glisemik indeksi düşüktür.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Kuru Baklagiller (Nohut, Mercimek)</strong></td>
+                    <td>4-5 yemek kaşığı (100g pişmiş)</td>
+                    <td>Bitkisel lif ve proteinle şekeri dengeler.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Taze Elma / Portakal</strong></td>
+                    <td>1 küçük boy (120-150g)</td>
+                    <td>Kabuğuyla ve tarçınla tüketin.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Süt / Doğal Kefir / Yoğurt</strong></td>
+                    <td>1 büyük su bardağı (250ml)</td>
+                    <td>Laktoz içerir, 1 bardak ~12-15g CHO (1 KE) sayılır.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Yulaf Ezmesi</strong></td>
+                    <td>2-3 yemek kaşığı (25g kuru)</td>
+                    <td>Beta-glukan lifi insülin duyarlılığını artırır.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= TAB 4: ALIŞVERİŞ LİSTESİ ================= -->
+        <div class="tab-pane" id="tab-shopping">
+          <div class="card shopping-card">
+            <div class="card-header">
+              <h2><i class="fa-solid fa-basket-shopping"></i> Akıllı Alışveriş & Mutfak Hazırlık Listesi</h2>
+              <p class="card-desc">Haftalık beslenme programınızı eksiksiz uygulamak için mutfağınızda bulunması gereken temel besinler.</p>
+            </div>
+            <div class="shopping-grid">
+              <div class="shop-col">
+                <h4><i class="fa-solid fa-egg"></i> Kahvaltılık & Protein</h4>
+                <ul>
+                  <li>Organik / Köy Yumurtası</li>
+                  <li>Tam yağlı veya az tuzlu beyaz peynir / lor peyniri</li>
+                  <li>Doğal zeytin (az tuzlu salamura veya sele)</li>
+                  <li>Avokado & ceviz içi</li>
+                  <li>Ekşi mayalı tam buğday veya çavdar ekmeği</li>
+                </ul>
+              </div>
+              <div class="shop-col">
+                <h4><i class="fa-solid fa-apple-whole"></i> Ara Öğün & Meyve</h4>
+                <ul>
+                  <li>Çiğ badem, fındık veya kabak çekirdeği</li>
+                  <li>Mevsim meyvesi (yeşil elma, çilek, yaban mersini, nar)</li>
+                  <li>Süzme veya ev yoğurdu, doğal kefir</li>
+                  <li>Tarçın, chia tohumu ve bitki çayları (yeşil çay, rezene, adaçayı)</li>
+                </ul>
+              </div>
+              <div class="shop-col">
+                <h4><i class="fa-solid fa-bowl-rice"></i> Akşam Yemeği & Tahıl</h4>
+                <ul>
+                  <li>Tavuk göğsü veya but / Hindi eti</li>
+                  <li>Mevsim balığı (Somon, Levrek, Çupra)</li>
+                  <li>Kuru baklagiller (Yeşil Mercimek, Nohut, Kuru Fasulye)</li>
+                  <li>Siyez bulguru, basmati pirinç veya karabuğday</li>
+                  <li>Bol yeşillik (roka, ıspanak, semizotu), sızma zeytinyağı</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Alışveriş Listesi Yazdırma Alanı -->
+            <div class="print-bar-footer">
+              <button class="btn btn-primary" id="print-shopping-bottom-btn" type="button">
+                <i class="fa-solid fa-print"></i> Alışveriş Listesini Yazdır / PDF İndir
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Saat Çizelgesi Tavsiyesi (Tüm Sekmelerin Altında) -->
+        <div class="card guidelines-card" id="timeline-card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-clock"></i> Saat Çizelgesi & Metabolizma İpuçları</h3>
+          </div>
+          <div class="timeline-grid" id="timeline-grid">
+            <!-- Dynamic via app.js depending on chosen meal pattern -->
+          </div>
+          <div class="footer-alert">
+            <i class="fa-solid fa-circle-check"></i>
+            <span><strong>Altın Kural:</strong> Akşam son öğününüzden sonra yatana kadar kalorisiz içecekler (su, şekersiz bitki çayları, maden suyu) serbesttir. Gece geç saatte atıştırmalıktan kaçınmak karaciğer yağlanmasını önler ve kaliteli uyku sağlar.</span>
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <footer class="main-footer">
+      <p>© 2026 DiyetWeb | Esnek Öğünlü Diyet, Dışarıda Yemek & Kalori/Karbonhidrat Asistanı</p>
+      <p class="disclaimer">Not: Bu sistem sağlıklı bireyler için genel beslenme rehberliği ve karbonhidrat takibi sunar. İnsülin kullanan diyabet hastalarının doz ayarlamalarını doktor ve uzman diyetisyen kontrolünde yapması gerekir.</p>
+    </footer>
+  </div>
+
+  <!-- Supabase Bağlantı Modalı -->
+  <div class="modal-overlay" id="supabase-modal" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-cloud text-green"></i> Supabase Bulut Veritabanı Ayarları</h3>
+        <button class="btn-icon" id="close-db-modal-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          Vercel üzerinde yayınlandığında veya farklı cihazlardan girdiğinizde verilerinizin bulutta senkronize olması için Supabase projenizin bağlantı bilgilerini buraya girin:
+        </p>
+
+        <form id="supabase-config-form">
+          <div class="form-group">
+            <label for="modal-supabase-url">Supabase Proje URL (Project URL)</label>
+            <input type="url" id="modal-supabase-url" placeholder="https://xxxxxxxxxxxx.supabase.co" required>
+          </div>
+          <div class="form-group">
+            <label for="modal-supabase-key">Supabase Anon Key (anon public Key)</label>
+            <input type="text" id="modal-supabase-key" placeholder="eyJhbGciOiJIUzI1NiIsIn..." required>
+          </div>
+          
+          <div class="modal-info-box">
+            <i class="fa-solid fa-circle-info"></i>
+            <div>
+              <strong>Veritabanı Tabloları:</strong>
+              <p>Supabase panelinizde <strong>SQL Editor</strong> bölümüne girip projenizdeki <code>schema.sql</code> dosyasındaki SQL kodlarını yapıştırıp "RUN" demeniz yeterlidir.</p>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" id="cancel-db-modal-btn">Vazgeç</button>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plug"></i> Bağlan & Kaydet</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supabase CDN & Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
